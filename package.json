@@ -1,21 +1,46 @@
 {
   "name": "@fdslk/codegraph-viz",
   "version": "1.0.0",
-  "description": "Local web visualizer for codegraph's knowledge graph (macOS).",
+  "description": "Local web visualizer for CodeGraph knowledge graphs.",
   "type": "module",
   "bin": {
     "codegraph-viz": "./bin/cli.mjs"
   },
+  "files": [
+    "bin/",
+    "public/",
+    "src/"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lkntfnd/codegraph-viz.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lkntfnd/codegraph-viz/issues"
+  },
+  "homepage": "https://github.com/lkntfnd/codegraph-viz#readme",
+  "keywords": [
+    "codegraph",
+    "dependency-graph",
+    "visualization"
+  ],
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
     "viz": "node bin/cli.mjs",
     "start": "node bin/cli.mjs",
-    "ls": "node bin/cli.mjs project ls"
+    "ls": "node bin/cli.mjs project ls",
+    "dev:fixture": "node --no-warnings scripts/serve-fixture.mjs",
+    "test": "node --test",
+    "test:vendor": "node --test test/vendor.test.mjs",
+    "check": "npm test && npm pack --dry-run"
   },
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=22.13.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "d3": "7.9.0"
+  }
 }

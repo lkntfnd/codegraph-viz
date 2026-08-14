@@ -1,6 +1,6 @@
 // src/commands/project-ls.mjs — `codegraph-viz project ls`
 
-import { resolve } from 'node:path';
+import { basename, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { scanProjects, defaultRoots } from '../locate.mjs';
 import { quickStats } from '../db.mjs';
@@ -40,7 +40,7 @@ async function run(args) {
     ['#', 'PROJECT', 'SYMBOLS', 'EDGES', 'UPDATED', 'PATH'],
     rows.map((r, i) => [
       String(i + 1),
-      r.project.split('/').pop(),
+      basename(r.project),
       r.ok ? fmtNum(r.symbols) : '?',
       r.ok ? fmtNum(r.edges) : '?',
       fmtRelTime(r.mtime),
