@@ -77,7 +77,11 @@ import {
   CYCLE_OVERVIEW_MARKER_LIMIT,
   HOTSPOT_OVERVIEW_LINK_LIMIT,
 } from './render.js';
-import { createStructureCollapseStore, projectStructureTreeModel } from './structureTree.js';
+import {
+  createStructureCollapseStore,
+  defaultStructureCollapseIds,
+  projectStructureTreeModel,
+} from './structureTree.js';
 import { tickWithinBudget } from './simulationScheduler.js';
 import {
   DEFAULTS,
@@ -1849,9 +1853,13 @@ function replaceSimulation(data, { preserve = false, fit = true, positions = nul
   }
   state.neighborhood = neighborhoodFor(state.activeId || state.selectedId);
   if (state.view === 'architecture') {
+    const storedCollapse = structureCollapse.get(state.prefix);
+    const collapsedIds = state.layoutId === 'structure-tree' && !structureCollapse.has(state.prefix)
+      ? defaultStructureCollapseIds(layoutModel)
+      : storedCollapse;
     state.layout = state.layoutId === 'structure-tree'
       ? createStructureTreeLayoutController(layoutModel, {
-        collapsedIds: structureCollapse.get(state.prefix),
+        collapsedIds,
       })
       : createNodesLayoutController(d3, layoutModel, state.settings, { cx: 0, cy: 0 });
   } else if (state.view === 'filedeps' && state.layoutId === 'dependency-matrix') {

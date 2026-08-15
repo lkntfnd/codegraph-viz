@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   createStructureCollapseStore,
+  defaultStructureCollapseIds,
   projectStructureTreeModel,
   toggleStructureTreeNode,
 } from '../public/app/structureTree.js';
@@ -45,6 +46,28 @@ test('Structure tree collapse store isolates scopes and returns defensive snapsh
   assert.deepEqual([...store.toggle('', 'src')], ['test']);
 
   store.save('', new Set());
+  assert.equal(store.has(''), true);
   assert.deepEqual([...store.get('')], []);
   assert.deepEqual([...store.get('packages/app')], ['packages/app/test']);
+});
+
+test('large Structure trees start with a bounded semantic overview', () => {
+  const nodes = [{ id: '.', parent: null }];
+  for (let folder = 0; folder < 4; folder += 1) {
+    const folderId = `folder-${folder}`;
+    nodes.push({ id: folderId, parent: '.' });
+    for (let file = 0; file < 30; file += 1) {
+      nodes.push({ id: `${folderId}/file-${file}.mjs`, parent: folderId });
+    }
+  }
+
+  const collapsed = defaultStructureCollapseIds({ nodes }, { limit: 36 });
+  const visible = new Set(nodes.map((node) => String(node.id)));
+  for (const node of nodes) {
+    if (collapsed.has(String(node.parent))) visible.delete(String(node.id));
+  }
+
+  assert.ok(collapsed.size > 0);
+  assert.ok(visible.size <= 36);
+  assert.ok([...collapsed].every((id) => id !== '.'));
 });
