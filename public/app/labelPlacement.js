@@ -1,3 +1,5 @@
+// public/app/labelPlacement.js — place readable labels without viewport collisions.
+
 function overlaps(left, right) {
   return left.left < right.right
     && left.right > right.left

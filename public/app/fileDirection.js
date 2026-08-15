@@ -1,3 +1,5 @@
+// public/app/fileDirection.js — filter direct dependencies by selected-file direction.
+
 const DIRECTIONS = new Set(['incoming', 'outgoing', 'both']);
 
 function endpointId(endpoint) {

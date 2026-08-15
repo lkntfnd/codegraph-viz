@@ -1,3 +1,5 @@
+// public/app/nodeActivation.js — distinguish selection, drill, and background actions.
+
 export function activationFor(event, hasNode) {
   if (event?.type === 'dblclick') return hasNode ? 'drill' : 'ignore';
   if (event?.type !== 'click') return 'ignore';

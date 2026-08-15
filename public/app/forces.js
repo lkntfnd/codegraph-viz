@@ -1,3 +1,5 @@
+// public/app/forces.js — configure and retune the shared D3 force model.
+
 const CENTER_MASS_FACTOR = 0.15;
 
 function mass(node) {

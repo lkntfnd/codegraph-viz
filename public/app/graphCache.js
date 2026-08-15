@@ -1,3 +1,5 @@
+// public/app/graphCache.js — cache graph responses and layout positions by scope.
+
 function normalizedOptions(options = {}) {
   const entries = Object.entries({ view: 'architecture', ...options })
     .filter(([, value]) => value !== undefined && value !== null && value !== '')

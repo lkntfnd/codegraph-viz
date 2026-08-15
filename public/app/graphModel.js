@@ -1,3 +1,5 @@
+// public/app/graphModel.js — normalize API graphs into indexed render models.
+
 import { GRAPH_CONSTANTS } from './settings.js';
 import { findStronglyConnectedComponents } from './stronglyConnectedComponents.js';
 import { CODE_SETS, classifyCodeSet } from './codeSet.js';

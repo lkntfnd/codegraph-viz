@@ -1,3 +1,5 @@
+// public/app/viewport.js — preserve visible graph context across canvas resizes.
+
 const finite = (value, fallback = 0) => {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;

@@ -1,3 +1,5 @@
+// public/app/panel.js — build settings, inspector, and investigation controls.
+
 import { nodeKindShape } from './nodeShape.js';
 import { searchIndexAfterKey } from './searchNavigation.js';
 

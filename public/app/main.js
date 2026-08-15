@@ -1,3 +1,5 @@
+// public/app/main.js — coordinate graph data, layouts, rendering, and interface state.
+
 import { getGraph, getMeta, getVersion, searchNodes } from './api.js';
 import { graphReadyAnnouncement, selectionClearedAnnouncement } from './accessibility.js';
 import { createCanvasTransition } from './canvasTransition.js';

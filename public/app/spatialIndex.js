@@ -1,3 +1,5 @@
+// public/app/spatialIndex.js — index graph geometry for pointer hit-testing.
+
 const finite = (value, fallback = 0) => {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;

@@ -1,3 +1,5 @@
+// public/app/simulationScheduler.js — advance force work within a frame budget.
+
 export function tickWithinBudget(simulation, remainingTicks, options = {}) {
   if (typeof simulation?.tick !== 'function') {
     throw new TypeError('tickWithinBudget requires a simulation with tick()');

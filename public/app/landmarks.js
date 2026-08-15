@@ -1,3 +1,5 @@
+// public/app/landmarks.js — select semantic labels for graph overviews.
+
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 function finite(value, fallback = 0) {

@@ -1,3 +1,5 @@
+// public/app/render.js — paint graph layouts and evidence on a single canvas.
+
 import { landmarkBudget, selectLandmarkIds } from './landmarks.js';
 import { callLinkKey, findLoadedCallPath } from './callPath.js';
 import {

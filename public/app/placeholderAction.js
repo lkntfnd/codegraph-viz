@@ -1,3 +1,5 @@
+// public/app/placeholderAction.js — own the latest deferred empty-state action.
+
 export function createPlaceholderActionSlot() {
   let current = null;
 

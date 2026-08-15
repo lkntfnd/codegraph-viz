@@ -1,3 +1,5 @@
+// public/app/cyclePresentation.js — expose bounded windows into call-cycle members.
+
 const DEFAULT_MEMBER_LIMIT = 20;
 
 export function cycleMemberWindow(members, selectedId, options = {}) {

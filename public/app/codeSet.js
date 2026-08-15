@@ -1,3 +1,5 @@
+// public/app/codeSet.js — classify and filter explicit source-code sets.
+
 export const CODE_SETS = Object.freeze(['production', 'tests', 'generated', 'vendor', 'unknown']);
 const CODE_SET_LABELS = Object.freeze({
   production: 'Production',

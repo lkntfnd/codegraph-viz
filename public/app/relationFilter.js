@@ -1,3 +1,5 @@
+// public/app/relationFilter.js — filter relation kinds and recompute visible weights.
+
 function relationId(kind) {
   return String(kind ?? '').trim().toLowerCase();
 }

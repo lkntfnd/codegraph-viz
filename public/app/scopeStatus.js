@@ -1,3 +1,5 @@
+// public/app/scopeStatus.js — explain server-side graph truncation precisely.
+
 const count = (value) => Math.max(0, Math.trunc(Number(value) || 0)).toLocaleString();
 
 export function truncationMessage(data) {

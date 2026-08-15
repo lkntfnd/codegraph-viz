@@ -1,3 +1,5 @@
+// public/app/layoutCamera.js — preserve camera transforms by view, layout, and scope.
+
 function normalizePart(value) {
   return String(value ?? '').trim();
 }

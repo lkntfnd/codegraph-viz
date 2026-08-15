@@ -1,3 +1,5 @@
+// public/app/callPath.js — trace loaded caller and callee paths around a focus.
+
 const endpointId = (endpoint) => String(
   typeof endpoint === 'object' && endpoint !== null ? endpoint.id : endpoint,
 );

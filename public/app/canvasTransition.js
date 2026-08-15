@@ -1,3 +1,5 @@
+// public/app/canvasTransition.js — own bounded cross-fades between graph scenes.
+
 export function createCanvasTransition({
   source,
   overlay,

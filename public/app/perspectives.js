@@ -1,3 +1,5 @@
+// public/app/perspectives.js — persist portable named graph investigations.
+
 import { clamp } from './settings.js';
 import { parseGraphHash, serializeGraphHash } from './urlState.js';
 

@@ -1,3 +1,5 @@
+// public/app/interactions.js — canvas zoom, hit-testing, selection, and dragging.
+
 import { buildNodeSpatialIndex } from './spatialIndex.js';
 import { activationFor } from './nodeActivation.js';
 import { matrixPositionAt } from './dependencyMatrix.js';

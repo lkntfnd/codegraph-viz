@@ -1,3 +1,5 @@
+// public/app/stronglyConnectedComponents.js — find stable directed graph cycles.
+
 const endpointId = (endpoint) => String(
   typeof endpoint === 'object' && endpoint !== null ? endpoint.id : endpoint,
 );

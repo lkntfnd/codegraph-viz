@@ -1,3 +1,5 @@
+// public/app/querySummary.js — describe active graph filters and hidden evidence.
+
 import { normalizeCodeSets } from './codeSet.js';
 import { normalizeFileDirection } from './fileDirection.js';
 

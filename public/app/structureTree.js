@@ -1,3 +1,5 @@
+// public/app/structureTree.js — project collapsed containment hierarchies safely.
+
 function endpointId(endpoint) {
   return String(endpoint?.id ?? endpoint);
 }

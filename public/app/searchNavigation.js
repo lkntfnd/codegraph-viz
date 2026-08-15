@@ -1,3 +1,5 @@
+// public/app/searchNavigation.js — move a listbox cursor from keyboard input.
+
 export function searchIndexAfterKey(currentIndex, itemCount, key) {
   const count = Math.max(0, Math.trunc(Number(itemCount) || 0));
   if (!count) return -1;

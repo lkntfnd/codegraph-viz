@@ -1,3 +1,5 @@
+// public/app/inspector.js — derive selected-node and change-impact evidence.
+
 const endpointId = (endpoint) => String(
   typeof endpoint === 'object' && endpoint !== null ? endpoint.id : endpoint,
 );

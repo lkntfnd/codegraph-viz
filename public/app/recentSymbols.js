@@ -1,3 +1,5 @@
+// public/app/recentSymbols.js — retain a bounded index-aware symbol history.
+
 export const RECENT_SYMBOLS_STORAGE_KEY = 'codegraph-viz:recent-symbols:v1';
 const DEFAULT_LIMIT = 5;
 

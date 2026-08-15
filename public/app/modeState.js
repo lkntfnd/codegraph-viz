@@ -1,3 +1,5 @@
+// public/app/modeState.js — preserve independent navigation state for each view.
+
 import { normalizeCallDepth, normalizeCallDirection } from './graphQuery.js';
 import { normalizeLayoutId } from './layoutRegistry.js';
 import { normalizeFileEvidence, normalizeMinimumCouplingPercentile } from './fileEvidence.js';

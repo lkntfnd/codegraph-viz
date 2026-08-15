@@ -1,3 +1,5 @@
+// public/app/tabNavigation.js — normalize arrow-key movement across view tabs.
+
 export function tabIndexAfterKey(currentIndex, count, key) {
   if (!Number.isInteger(count) || count <= 0) return null;
   const current = Number.isInteger(currentIndex) && currentIndex >= 0 ? currentIndex : 0;

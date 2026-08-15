@@ -1,3 +1,5 @@
+// public/app/callPresentationCopy.js — describe call paths and cycle disclosure.
+
 import {
   IMPACT_OVERVIEW_LINK_LIMIT,
   impactOverviewActive,

@@ -1,3 +1,5 @@
+// public/app/layoutRegistry.js — define supported layouts and their capabilities.
+
 const REGISTRY = Object.freeze({
   architecture: Object.freeze([
     Object.freeze({ id: 'nodes', label: 'Nodes', description: 'Interactive nodes arranged by gravity and relationship forces.', usesPhysics: true }),

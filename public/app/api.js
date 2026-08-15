@@ -1,3 +1,5 @@
+// public/app/api.js — browser client for the local graph API.
+
 const GRAPH_OPTION_KEYS = ['prefix', 'file', 'focus', 'depth', 'direction', 'kind', 'limit', 'recursive'];
 
 function describeError(error) {

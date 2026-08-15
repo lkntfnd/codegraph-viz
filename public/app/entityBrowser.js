@@ -1,3 +1,5 @@
+// public/app/entityBrowser.js — rank and search entities in the loaded graph.
+
 function text(value) {
   return String(value ?? '').trim();
 }

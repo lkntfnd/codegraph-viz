@@ -1,3 +1,5 @@
+// public/app/nodeShape.js — map node kinds to restrained canvas shapes.
+
 const KIND_SHAPES = Object.freeze({
   folder: 'container',
   module: 'container',

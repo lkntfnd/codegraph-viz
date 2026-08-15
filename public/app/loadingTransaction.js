@@ -1,3 +1,5 @@
+// public/app/loadingTransaction.js — coordinate delayed loading feedback without flicker.
+
 export function createLoadingTransaction({
   delay = 120,
   show,

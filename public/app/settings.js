@@ -1,3 +1,5 @@
+// public/app/settings.js — define, clamp, and persist visualization settings.
+
 import { CODE_SETS } from './codeSet.js';
 
 export const SETTINGS_STORAGE_KEY = 'cgviz.settings.v1';

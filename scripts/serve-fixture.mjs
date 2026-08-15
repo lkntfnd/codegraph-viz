@@ -1,3 +1,5 @@
+// scripts/serve-fixture.mjs — serve a disposable graph for browser development.
+
 import { DatabaseSync } from 'node:sqlite';
 import { mkdtemp, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';

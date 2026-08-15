@@ -1,3 +1,5 @@
+// public/app/layoutController.js — run force, tree, matrix, flow, and radial layouts.
+
 import { apply as applyForces, build as buildForces } from './forces.js';
 import { buildDependencyMatrix } from './dependencyMatrix.js';
 import { fileGroupForNode } from './fileGroups.js';

@@ -1,3 +1,5 @@
+// src/open-browser.mjs — open local URLs without invoking a command shell.
+
 import { spawn } from 'node:child_process';
 
 /** Open a URL with the platform's browser without passing it through a shell. */

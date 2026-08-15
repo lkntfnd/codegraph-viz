@@ -1,3 +1,5 @@
+// public/app/theme.js — apply complete dark and black canvas themes.
+
 const dark = {
   bg: '#0c0f13',
   bgPanel: '#12161c',

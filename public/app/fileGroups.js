@@ -1,3 +1,5 @@
+// public/app/fileGroups.js — derive stable folder groups from file nodes.
+
 export function fileGroupForNode(node) {
   const path = String(node?.path ?? node?.file ?? '')
     .replaceAll('\\', '/')

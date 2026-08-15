@@ -1,3 +1,5 @@
+// public/app/graphCount.js — format exact graph node and edge counts.
+
 function safeCount(value) {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? Math.max(0, Math.floor(numeric)) : 0;

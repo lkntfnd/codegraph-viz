@@ -1,3 +1,5 @@
+// public/app/fileEvidence.js — derive coupling, cycle, and isolation evidence.
+
 import { findStronglyConnectedComponents } from './stronglyConnectedComponents.js';
 
 const FILE_EVIDENCE = new Set(['all', 'cycles', 'isolated']);

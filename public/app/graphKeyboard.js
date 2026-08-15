@@ -1,3 +1,5 @@
+// public/app/graphKeyboard.js — choose graph nodes from directional keyboard input.
+
 const DIRECTION_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']);
 
 function finiteNodes(nodes = []) {

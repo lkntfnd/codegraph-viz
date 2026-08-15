@@ -1,3 +1,5 @@
+// public/app/dependencyMatrix.js — order and describe directed file-dependency cells.
+
 import { fileGroupForNode } from './fileGroups.js';
 
 const endpointId = (endpoint) => String(

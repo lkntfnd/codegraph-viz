@@ -1,3 +1,5 @@
+// public/app/callCycleProjection.js — compact large call cycles without losing evidence.
+
 import { build as buildGraphModel } from './graphModel.js';
 
 export const CALL_CYCLE_SUMMARY_THRESHOLD = 80;

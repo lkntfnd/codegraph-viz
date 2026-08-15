@@ -1,3 +1,5 @@
+// public/app/accessibility.js — concise announcements for graph navigation.
+
 function sentence(value) {
   return String(value || '').trim().replace(/[.\s]+$/, '');
 }

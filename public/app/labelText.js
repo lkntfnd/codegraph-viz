@@ -1,3 +1,5 @@
+// public/app/labelText.js — measure and truncate canvas labels safely.
+
 const segmenter = typeof Intl?.Segmenter === 'function'
   ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
   : null;

@@ -1,3 +1,5 @@
+// public/app/urlState.js — serialize portable graph investigations in the URL hash.
+
 import {
   DEFAULT_CALL_DEPTH,
   DEFAULT_CALL_DIRECTION,
