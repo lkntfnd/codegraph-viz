@@ -4,24 +4,10 @@ import http from 'node:http';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { normalizeCallDepth, normalizeCallDirection } from '../public/app/graphQuery.js';
 import { openDb, detectSchema } from './db.mjs';
 import { dbMtime } from './util.mjs';
 import { loadGraph, viewArchitecture, viewFileDeps, viewCallGraph, searchNodes } from './views.mjs';
-
-const DEFAULT_CALL_DEPTH = 2;
-const MIN_CALL_DEPTH = 1;
-const MAX_CALL_DEPTH = 5;
-
-function callDepth(value) {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return DEFAULT_CALL_DEPTH;
-  return Math.min(MAX_CALL_DEPTH, Math.max(MIN_CALL_DEPTH, Math.trunc(numeric)));
-}
-
-function callDirection(value) {
-  const normalized = String(value || '').trim().toLowerCase();
-  return ['callers', 'both', 'callees'].includes(normalized) ? normalized : 'both';
-}
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(__dirname, '..', 'public');
@@ -43,6 +29,23 @@ const send = (res, code, body, type = 'application/json') => {
   res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store' });
   res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body));
 };
+
+function loopbackAuthority(value) {
+  try {
+    return new URL(`http://${String(value || '')}`).hostname === '127.0.0.1';
+  } catch {
+    return false;
+  }
+}
+
+function trustedOrigin(value) {
+  if (!value) return true;
+  try {
+    return new URL(String(value)).hostname === '127.0.0.1';
+  } catch {
+    return false;
+  }
+}
 
 function insidePublic(filePath) {
   const rel = relative(PUBLIC_ROOT, filePath);
@@ -90,6 +93,9 @@ export async function createServer(dbPath) {
 
   const server = http.createServer(async (req, res) => {
     try {
+      if (!loopbackAuthority(req.headers.host)) return send(res, 421, { error: 'invalid host' });
+      if (!trustedOrigin(req.headers.origin)) return send(res, 403, { error: 'invalid origin' });
+
       const url = new URL(req.url, 'http://localhost');
       const p = url.pathname;
 
@@ -117,8 +123,8 @@ export async function createServer(dbPath) {
         const view = url.searchParams.get('view') || 'architecture';
         const opt = {
           limit: Number(url.searchParams.get('limit')) || undefined,
-          depth: callDepth(url.searchParams.get('depth')),
-          direction: callDirection(url.searchParams.get('direction')),
+          depth: normalizeCallDepth(url.searchParams.get('depth')),
+          direction: normalizeCallDirection(url.searchParams.get('direction')),
           focus: url.searchParams.get('focus') || null,
           kind: url.searchParams.get('kind') || null,
           prefix: url.searchParams.get('prefix') || '',

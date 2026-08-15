@@ -1,4 +1,4 @@
-// public/app/graphQuery.js — normalize browser graph request options.
+// public/app/graphQuery.js — normalize shared graph request options.
 
 export const DEFAULT_CALL_DEPTH = 2;
 export const MIN_CALL_DEPTH = 1;

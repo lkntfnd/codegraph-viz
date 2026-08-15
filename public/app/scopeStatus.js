@@ -8,7 +8,7 @@ export function truncationMessage(data) {
   const total = Number(data.scope?.total);
   if (loaded >= 0 && total > loaded) {
     if (data.view === 'filedeps') {
-      return `Loaded ${count(loaded)} of ${count(total)} scoped files · connected externals included`;
+      return `Loaded ${count(loaded)} of ${count(total)} connected files`;
     }
     if (data.view === 'callgraph') {
       return `Loaded top ${count(loaded)} of ${count(total)} call-connected symbols`;

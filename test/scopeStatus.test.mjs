@@ -8,7 +8,7 @@ test('truncation message names the exact loaded server scope', () => {
     view: 'filedeps',
     truncated: true,
     scope: { loaded: 600, total: 3_000, limit: 600 },
-  }), 'Loaded 600 of 3,000 scoped files · connected externals included');
+  }), 'Loaded 600 of 3,000 connected files');
   assert.equal(truncationMessage({
     view: 'callgraph',
     truncated: true,

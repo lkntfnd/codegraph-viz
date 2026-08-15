@@ -12,14 +12,15 @@ let baseUrl;
 let server;
 let fixtureDir;
 
-function rawRequest(pathname) {
+function rawRequest(pathname, options = {}) {
   const target = new URL(baseUrl);
   return new Promise((resolve, reject) => {
     const request = http.request({
       host: target.hostname,
       port: target.port,
       path: pathname,
-      method: 'GET',
+      method: options.method || 'GET',
+      headers: options.headers,
     }, (response) => {
       const chunks = [];
       response.on('data', (chunk) => chunks.push(chunk));
@@ -121,6 +122,24 @@ test('reports graph metadata through the public API', async () => {
   assert.equal(response.status, 200);
   assert.equal(body.nodeCount, 4);
   assert.equal(body.edgeCount, 5);
+});
+
+test('rejects non-loopback Host headers before serving project data', async () => {
+  const response = await rawRequest('/api/meta', { headers: { Host: 'attacker.example' } });
+
+  assert.equal(response.status, 421);
+  assert.deepEqual(JSON.parse(response.body), { error: 'invalid host' });
+  assert.doesNotMatch(response.body, /codegraph\.db/);
+});
+
+test('rejects non-loopback browser origins before serving project data', async () => {
+  const response = await rawRequest('/api/meta', {
+    headers: { Origin: 'https://attacker.example' },
+  });
+
+  assert.equal(response.status, 403);
+  assert.deepEqual(JSON.parse(response.body), { error: 'invalid origin' });
+  assert.doesNotMatch(response.body, /codegraph\.db/);
 });
 
 test('preserves a per-kind breakdown on aggregated file dependencies', async () => {
