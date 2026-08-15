@@ -6,6 +6,7 @@ import { describeMatrixPosition, matrixPositionAt } from '../public/app/dependen
 import { build as buildModel } from '../public/app/graphModel.js';
 import {
   createForceLayoutController,
+  createNodesLayoutController,
   createDependencyMatrixLayoutController,
   createHotspotLayoutController,
   createStructureTreeLayoutController,
@@ -31,6 +32,19 @@ test('force layout controller satisfies the shared execution lifecycle', () => {
   controller.configure({ ...DEFAULTS, linkDistance: 144 });
   assert.equal(controller.simulation.force('link').distance()(), 144);
   assert.equal(typeof controller.shouldContinue(false), 'boolean');
+  controller.dispose();
+});
+
+test('Nodes exposes the stock force graph through the shared layout lifecycle', () => {
+  const model = buildModel(apiData);
+  const controller = createNodesLayoutController(d3, model, DEFAULTS);
+
+  assert.equal(controller.id, 'nodes');
+  assert.equal(controller.kind, 'dynamic');
+  assert.ok(controller.simulation.force('link'));
+  assert.ok(controller.simulation.force('charge'));
+  assert.ok(controller.simulation.force('x'));
+  assert.ok(controller.simulation.force('y'));
   controller.dispose();
 });
 

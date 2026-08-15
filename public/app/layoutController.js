@@ -381,6 +381,13 @@ export function createForceLayoutController(d3, model, settings, options = {}) {
   };
 }
 
+export function createNodesLayoutController(d3, model, settings, options = {}) {
+  return {
+    ...createForceLayoutController(d3, model, settings, options),
+    id: 'nodes',
+  };
+}
+
 export function createHotspotLayoutController(d3, model, settings, options = {}) {
   const center = { cx: options.cx ?? 0, cy: options.cy ?? 0 };
   if (!hotspotUsesPhysics(model, options)) {

@@ -1,6 +1,6 @@
 const REGISTRY = Object.freeze({
   architecture: Object.freeze([
-    Object.freeze({ id: 'territory', label: 'Territory', description: 'Directory areas sized by indexed symbols.', usesPhysics: false }),
+    Object.freeze({ id: 'nodes', label: 'Nodes', description: 'Interactive nodes arranged by gravity and relationship forces.', usesPhysics: true }),
     Object.freeze({ id: 'structure-tree', label: 'Structure tree', description: 'Containment hierarchy for precise codebase navigation.', usesPhysics: false }),
   ]),
   filedeps: Object.freeze([

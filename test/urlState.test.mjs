@@ -50,7 +50,7 @@ test('call graph hash round-trips semantic investigation state', () => {
 test('architecture hash keeps scope and normalizes invalid fields', () => {
   assert.deepEqual(parseGraphHash('#view=architecture&layout=bad&prefix=src%2Fui&depth=99&direction=bad&focus=nope'), {
     view: 'architecture',
-    layoutId: 'territory',
+    layoutId: 'nodes',
     prefix: 'src/ui',
     file: null,
     focus: null,
@@ -72,7 +72,7 @@ test('architecture hash keeps scope and normalizes invalid fields', () => {
 test('empty and hostile hashes restore safe defaults', () => {
   const defaults = {
     view: 'architecture',
-    layoutId: 'territory',
+    layoutId: 'nodes',
     prefix: '',
     file: null,
     focus: null,
@@ -170,7 +170,7 @@ test('hidden node kinds round-trip as a bounded canonical set', () => {
     layoutId: 'territory',
     settings: { hiddenKinds: [' File ', 'folder', 'file', '', 'Type:Generated'] },
   });
-  assert.equal(hash, '#view=architecture&layout=territory&hide-kind=file&hide-kind=folder&hide-kind=type%3Agenerated');
+  assert.equal(hash, '#view=architecture&layout=nodes&hide-kind=file&hide-kind=folder&hide-kind=type%3Agenerated');
   assert.deepEqual(parseGraphHash(hash).hiddenKinds, ['file', 'folder', 'type:generated']);
   assert.deepEqual(
     parseGraphHash(`#view=architecture&${Array.from({ length: 80 }, (_, index) => `hide-kind=k${index}`).join('&')}`).hiddenKinds,

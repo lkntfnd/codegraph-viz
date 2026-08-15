@@ -39,12 +39,12 @@ import { createInteractions } from './interactions.js';
 import { createLayoutCameraStore, layoutCameraScope } from './layoutCamera.js';
 import {
   createForceLayoutController,
+  createNodesLayoutController,
   createDependencyMatrixLayoutController,
   createHotspotLayoutController,
   createImpactFlowLayoutController,
   createRadialReachLayoutController,
   createStructureTreeLayoutController,
-  createTerritoryLayoutController,
 } from './layoutController.js';
 import {
   defaultLayoutId,
@@ -1859,7 +1859,7 @@ function replaceSimulation(data, { preserve = false, fit = true, positions = nul
       ? createStructureTreeLayoutController(layoutModel, {
         collapsedIds: structureCollapse.get(state.prefix),
       })
-      : createTerritoryLayoutController(d3, layoutModel);
+      : createNodesLayoutController(d3, layoutModel, state.settings, { cx: 0, cy: 0 });
   } else if (state.view === 'filedeps' && state.layoutId === 'dependency-matrix') {
     state.layout = createDependencyMatrixLayoutController(layoutModel);
   } else if (state.view === 'filedeps' && state.layoutId === 'hotspot-landscape') {

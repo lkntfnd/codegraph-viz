@@ -13,7 +13,7 @@ import {
 
 test('layout registry exposes only implemented choices for each mode', () => {
   assert.deepEqual(layoutOptions('architecture'), [
-    { id: 'territory', label: 'Territory', description: 'Directory areas sized by indexed symbols.', usesPhysics: false },
+    { id: 'nodes', label: 'Nodes', description: 'Interactive nodes arranged by gravity and relationship forces.', usesPhysics: true },
     { id: 'structure-tree', label: 'Structure tree', description: 'Containment hierarchy for precise codebase navigation.', usesPhysics: false },
   ]);
   assert.deepEqual(layoutOptions('filedeps'), [
@@ -27,7 +27,7 @@ test('layout registry exposes only implemented choices for each mode', () => {
 });
 
 test('layout registry exposes physics capability instead of inferring it in controls', () => {
-  assert.equal(layoutUsesPhysics('architecture', 'territory'), false);
+  assert.equal(layoutUsesPhysics('architecture', 'nodes'), true);
   assert.equal(layoutUsesPhysics('architecture', 'structure-tree'), false);
   assert.equal(layoutUsesPhysics('filedeps', 'hotspot-landscape'), true);
   assert.equal(layoutUsesPhysics('filedeps', 'dependency-matrix'), false);
@@ -37,9 +37,11 @@ test('layout registry exposes physics capability instead of inferring it in cont
 
 test('layout registry normalizes unknown combinations to the mode default', () => {
   assert.equal(defaultLayoutId('callgraph'), 'impact-flow');
+  assert.equal(defaultLayoutId('architecture'), 'nodes');
   assert.equal(normalizeLayoutId('callgraph', 'radial-reach'), 'radial-reach');
   assert.equal(normalizeLayoutId('callgraph', 'territory'), 'impact-flow');
-  assert.equal(normalizeLayoutId('architecture', 'radial-reach'), 'territory');
+  assert.equal(normalizeLayoutId('architecture', 'territory'), 'nodes');
+  assert.equal(normalizeLayoutId('architecture', 'radial-reach'), 'nodes');
 });
 
 test('layout activity copy names the normalized mode-specific layout', () => {

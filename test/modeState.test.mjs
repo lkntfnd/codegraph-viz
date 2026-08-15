@@ -29,7 +29,7 @@ test('mode state store keeps independent immutable navigation snapshots', () => 
     prefix: 'src/app', file: null, focus: null, selectedId: 'src/app',
     callDepth: 2,
     callDirection: 'both',
-    layoutId: 'territory',
+    layoutId: 'nodes',
     hiddenKinds: ['file', 'folder'],
     hiddenCodeSets: ['tests', 'unknown'],
     expandedCallCycleIds: [],
