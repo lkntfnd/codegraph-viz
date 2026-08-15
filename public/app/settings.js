@@ -1,3 +1,5 @@
+import { CODE_SETS } from './codeSet.js';
+
 export const SETTINGS_STORAGE_KEY = 'cgviz.settings.v1';
 
 export const GRAPH_CONSTANTS = Object.freeze({
@@ -46,8 +48,16 @@ export const SCHEMA = Object.freeze({
     default: 1, min: 0.5, max: 3, step: 0.1,
   },
   labelZoom: {
-    type: 'range', group: 'display', label: 'Text fade',
-    default: 1.2, min: 0.4, max: 4, step: 0.1,
+    type: 'range', group: 'display', label: 'Label reveal',
+    default: 0, min: 0, max: 1, step: 0.05,
+  },
+  labelSize: {
+    type: 'range', group: 'display', label: 'Text size',
+    default: 13, min: 10, max: 24, step: 1,
+  },
+  labelDensity: {
+    type: 'enum', group: 'display', label: 'Label density',
+    default: 'balanced', values: ['minimal', 'balanced', 'dense'],
   },
   showLabels: {
     type: 'boolean', group: 'display', label: 'Show labels', default: true,
@@ -63,6 +73,12 @@ export const SCHEMA = Object.freeze({
   },
   hiddenKinds: {
     type: 'stringArray', group: 'filters', label: 'Hidden kinds', default: [],
+  },
+  hiddenCodeSets: {
+    type: 'enumArray', group: 'filters', label: 'Hidden code sets', default: [], values: CODE_SETS,
+  },
+  hiddenRelationKinds: {
+    type: 'stringArray', group: 'filters', label: 'Hidden relation kinds', default: [],
   },
   theme: {
     type: 'enum', group: 'theme', label: 'Theme', default: 'dark', values: ['dark', 'black'],
@@ -101,6 +117,11 @@ export function clamp(input = {}) {
       output[key] = Array.isArray(value)
         ? [...new Set(value.filter((item) => typeof item === 'string'))]
         : [...definition.default];
+    } else if (definition.type === 'enumArray') {
+      const selected = new Set((Array.isArray(value) ? value : [])
+        .map((item) => typeof item === 'string' ? item.trim().toLowerCase() : '')
+        .filter(Boolean));
+      output[key] = definition.values.filter((item) => selected.has(item));
     }
   }
 
