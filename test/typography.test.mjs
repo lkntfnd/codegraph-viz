@@ -45,7 +45,7 @@ test('compact breakpoints never shrink mode or layout controls', () => {
 });
 
 test('caller and callee direction stays on one semantic row', () => {
-  assert.match(css, /\.impact-key,\s*\.territory-key\s*{[^}]*white-space:\s*nowrap;/);
+  assert.match(css, /\.impact-key\s*{[^}]*white-space:\s*nowrap;/);
 });
 
 test('compact graph and inspector actions expose 44px touch targets', () => {

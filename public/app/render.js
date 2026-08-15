@@ -316,11 +316,6 @@ function hasFinitePosition(node) {
   return node && Number.isFinite(node.x) && Number.isFinite(node.y);
 }
 
-function territoryBox(node) {
-  const box = node?.territory;
-  return box && [box.x0, box.y0, box.x1, box.y1].every(Number.isFinite) ? box : null;
-}
-
 function resolveEndpoint(endpoint, nodesById) {
   if (endpoint && typeof endpoint === 'object') return endpoint;
   return nodesById.get(String(endpoint));
@@ -392,12 +387,6 @@ function pointInViewport(node, viewport, radius = 0) {
     && node.x - radius <= viewport.right
     && node.y + radius >= viewport.top
     && node.y - radius <= viewport.bottom;
-}
-
-function territoryInViewport(node, viewport) {
-  const box = territoryBox(node);
-  return box && box.x1 >= viewport.left && box.x0 <= viewport.right
-    && box.y1 >= viewport.top && box.y0 <= viewport.bottom;
 }
 
 function linkInViewport(source, target, viewport) {
@@ -670,8 +659,8 @@ function appendNodeShape(ctx, node, radius) {
   ctx.closePath();
 }
 
-function territoryColor(node) {
-  const text = String(node.path ?? node.id ?? node.label ?? 'territory');
+function groupColor(node) {
+  const text = String(node.path ?? node.id ?? node.label ?? 'group');
   let hash = 2166136261;
   for (let index = 0; index < text.length; index += 1) {
     hash ^= text.charCodeAt(index);
@@ -684,7 +673,7 @@ function territoryColor(node) {
 function drawFolderHulls(ctx, hulls, zoom) {
   for (const hull of hulls) {
     if (hull.points.length < 3) continue;
-    const color = territoryColor({ path: hull.id });
+    const color = groupColor({ path: hull.id });
     ctx.beginPath();
     ctx.moveTo(hull.points[0][0], hull.points[0][1]);
     for (const [x, y] of hull.points.slice(1)) ctx.lineTo(x, y);
@@ -753,7 +742,7 @@ function drawDependencyMatrix(ctx, matrix, theme, zoom, hover, selection) {
     const endX = originX + group.end * cellSize;
     const startY = originY + group.start * cellSize;
     const endY = originY + group.end * cellSize;
-    const color = territoryColor({ path: group.id });
+    const color = groupColor({ path: group.id });
     ctx.strokeStyle = color;
     ctx.lineWidth = 1.2 / zoom;
     ctx.globalAlpha = 0.34;
@@ -773,7 +762,7 @@ function drawDependencyMatrix(ctx, matrix, theme, zoom, hover, selection) {
 
   for (const cell of matrix.cells) {
     const source = matrix.nodes[cell.sourceIndex];
-    ctx.fillStyle = territoryColor({ path: source?.folderGroup ?? source?.path ?? source?.id });
+    ctx.fillStyle = groupColor({ path: source?.folderGroup ?? source?.path ?? source?.id });
     ctx.globalAlpha = matrixCellOpacity(cell.weight, matrix.maxWeight);
     const inset = Math.max(0.5 / zoom, cell.size * 0.1);
     ctx.fillRect(
@@ -932,27 +921,6 @@ function drawStructureTreeLabels(ctx, nodes, theme, settings, transform, size, a
     ctx.fillText(label, point.x + 12, point.y);
   }
   ctx.restore();
-}
-
-function drawTerritoryCells(ctx, nodes, theme, zoom, activeId, selectedId) {
-  for (const item of nodes) {
-    const { node, highlighted, dimmed } = item;
-    const box = territoryBox(node);
-    if (!box) continue;
-    const id = nodeId(node);
-    const emphasized = id === activeId || id === selectedId;
-    ctx.beginPath();
-    ctx.rect(box.x0, box.y0, box.x1 - box.x0, box.y1 - box.y0);
-    ctx.fillStyle = territoryColor(node);
-    ctx.globalAlpha = dimmed ? 0.08 : highlighted ? 0.42 : 0.24;
-    ctx.fill();
-    ctx.setLineDash(node.expandable ? [5 / zoom, 3 / zoom] : []);
-    ctx.strokeStyle = emphasized ? theme.linkHi : theme.nodeStroke;
-    ctx.lineWidth = (emphasized ? 2 : 1) / zoom;
-    ctx.globalAlpha = emphasized ? 1 : dimmed ? 0.18 : 0.68;
-    ctx.stroke();
-  }
-  ctx.setLineDash([]);
 }
 
 function drawNodes(ctx, nodes, theme, settings, zoom, activeId, selectedId) {
@@ -1287,7 +1255,6 @@ export function createRenderer(canvas) {
     const settings = scene.settings ?? {};
     const activeId = scene.activeId == null ? null : String(scene.activeId);
     const selectedId = scene.selectedId == null ? null : String(scene.selectedId);
-    const territoryLayout = scene.layoutId === 'territory';
     const hotspotLayout = scene.layoutId === 'hotspot-landscape';
     const impactLayout = scene.layoutId === 'impact-flow';
     const matrixLayout = scene.layoutId === 'dependency-matrix' && scene.matrix;
@@ -1321,9 +1288,7 @@ export function createRenderer(canvas) {
       const id = nodeId(node);
       const emphasized = id === activeId || id === selectedId;
       const radius = nodeRadius(node, settings, emphasized);
-      if (territoryLayout
-        ? !territoryInViewport(node, viewport)
-        : !pointInViewport(node, viewport, radius)) continue;
+      if (!pointInViewport(node, viewport, radius)) continue;
 
       visibleNodes.push({
         node,
@@ -1344,7 +1309,6 @@ export function createRenderer(canvas) {
       const targetId = nodeId(target);
       const isNear = !nearby || (nearby.has(sourceId) && nearby.has(targetId));
       const isOnPath = Boolean(pathLinkKeys?.has(callLinkKey(sourceId, targetId)));
-      if (territoryLayout && (!nearby || !isNear)) continue;
       visibleLinks.push({
         ...link,
         source,
@@ -1402,8 +1366,6 @@ export function createRenderer(canvas) {
     } else {
       if (hotspotLayout) {
         drawFolderHulls(ctx, folderHulls, transform.k);
-      } else if (territoryLayout) {
-        drawTerritoryCells(ctx, visibleNodes, theme, transform.k, activeId, selectedId);
       } else if (scene.layoutId === 'radial-reach') {
         drawRadialGuides(ctx, nodes, theme, transform.k);
       }
@@ -1415,19 +1377,17 @@ export function createRenderer(canvas) {
         transform.k,
         transform.k >= ARROW_ZOOM,
       );
-      if (!territoryLayout) {
-        drawGlows(ctx, renderedNodes.map((item) => item.node), theme, settings, transform.k, activeId, selectedId);
-        drawNodes(ctx, renderedNodes, theme, settings, transform.k, activeId, selectedId);
-        drawCycleMarkers(
-          ctx,
-          renderedNodes,
-          theme,
-          settings,
-          transform.k,
-          scene.view,
-          nodes.filter((node) => node.inCycle).length,
-        );
-      }
+      drawGlows(ctx, renderedNodes.map((item) => item.node), theme, settings, transform.k, activeId, selectedId);
+      drawNodes(ctx, renderedNodes, theme, settings, transform.k, activeId, selectedId);
+      drawCycleMarkers(
+        ctx,
+        renderedNodes,
+        theme,
+        settings,
+        transform.k,
+        scene.view,
+        nodes.filter((node) => node.inCycle).length,
+      );
     }
     ctx.restore();
 

@@ -7,7 +7,7 @@ test('mode state store keeps independent immutable navigation snapshots', () => 
   const store = createModeStateStore();
   store.save('architecture', {
     prefix: 'src/app', file: null, focus: null, selectedId: 'src/app',
-    layoutId: 'territory',
+    layoutId: 'nodes',
     hiddenKinds: [' File ', 'folder', 'file'], hiddenCodeSets: ['Unknown', 'tests', 'invalid'],
     transform: { x: 12, y: 24, k: 1.5 },
   });

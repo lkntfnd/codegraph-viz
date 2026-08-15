@@ -14,19 +14,11 @@ export function buildNodeSpatialIndex(d3, nodes = [], radiusFor = () => 0) {
     (node) => Number.isFinite(node?.x) && Number.isFinite(node?.y),
   );
   const radiusByNode = new Map();
-  const territoryByNode = new Map();
   let maxRadius = 0;
 
   for (const node of indexed) {
-    const box = node?.territory;
-    const territory = box && [box.x0, box.y0, box.x1, box.y1].every(Number.isFinite)
-      ? box
-      : null;
-    const radius = territory
-      ? Math.hypot((territory.x1 - territory.x0) / 2, (territory.y1 - territory.y0) / 2)
-      : Math.max(0, finite(radiusFor(node)));
+    const radius = Math.max(0, finite(radiusFor(node)));
     radiusByNode.set(node, radius);
-    if (territory) territoryByNode.set(node, territory);
     maxRadius = Math.max(maxRadius, radius);
   }
 
@@ -53,11 +45,7 @@ export function buildNodeSpatialIndex(d3, nodes = [], radiusFor = () => 0) {
           const dy = y - node.y;
           const distance = dx * dx + dy * dy;
           const radius = radiusByNode.get(node);
-          const territory = territoryByNode.get(node);
-          const contains = territory
-            ? x >= territory.x0 && x <= territory.x1 && y >= territory.y0 && y <= territory.y1
-            : distance <= radius * radius;
-          if (contains && distance < nearestDistance) {
+          if (distance <= radius * radius && distance < nearestDistance) {
             nearest = node;
             nearestDistance = distance;
           }

@@ -512,20 +512,11 @@ export function createInteractions(options = {}) {
     let maxX = -Infinity;
     let maxY = -Infinity;
     for (const node of positioned) {
-      const box = node.territory;
-      const hasTerritory = box && [box.x0, box.y0, box.x1, box.y1].every(Number.isFinite);
-      if (hasTerritory) {
-        minX = Math.min(minX, box.x0);
-        maxX = Math.max(maxX, box.x1);
-        minY = Math.min(minY, box.y0);
-        maxY = Math.max(maxY, box.y1);
-      } else {
-        const radius = nodeRadius(node, scale);
-        minX = Math.min(minX, node.x - radius);
-        maxX = Math.max(maxX, node.x + radius);
-        minY = Math.min(minY, node.y - radius);
-        maxY = Math.max(maxY, node.y + radius);
-      }
+      const radius = nodeRadius(node, scale);
+      minX = Math.min(minX, node.x - radius);
+      maxX = Math.max(maxX, node.x + radius);
+      minY = Math.min(minY, node.y - radius);
+      maxY = Math.max(maxY, node.y + radius);
     }
 
     const padding = fitPadding(dimensions.padding);

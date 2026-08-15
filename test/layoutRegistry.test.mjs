@@ -39,8 +39,8 @@ test('layout registry normalizes unknown combinations to the mode default', () =
   assert.equal(defaultLayoutId('callgraph'), 'impact-flow');
   assert.equal(defaultLayoutId('architecture'), 'nodes');
   assert.equal(normalizeLayoutId('callgraph', 'radial-reach'), 'radial-reach');
-  assert.equal(normalizeLayoutId('callgraph', 'territory'), 'impact-flow');
-  assert.equal(normalizeLayoutId('architecture', 'territory'), 'nodes');
+  assert.equal(normalizeLayoutId('callgraph', 'unknown'), 'impact-flow');
+  assert.equal(normalizeLayoutId('architecture', 'unknown'), 'nodes');
   assert.equal(normalizeLayoutId('architecture', 'radial-reach'), 'nodes');
 });
 

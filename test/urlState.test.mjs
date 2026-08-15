@@ -167,7 +167,7 @@ test('external-node visibility is explicit in applicable canonical graph URLs', 
 test('hidden node kinds round-trip as a bounded canonical set', () => {
   const hash = serializeGraphHash({
     view: 'architecture',
-    layoutId: 'territory',
+    layoutId: 'nodes',
     settings: { hiddenKinds: [' File ', 'folder', 'file', '', 'Type:Generated'] },
   });
   assert.equal(hash, '#view=architecture&layout=nodes&hide-kind=file&hide-kind=folder&hide-kind=type%3Agenerated');

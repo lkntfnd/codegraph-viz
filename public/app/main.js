@@ -88,7 +88,6 @@ import {
   serialize,
 } from './settings.js';
 import { apply as applyTheme } from './theme.js';
-import { territorySizeEvidence } from './territoryEvidence.js';
 import { tabIndexAfterKey } from './tabNavigation.js';
 import {
   investigationUrl,
@@ -195,7 +194,6 @@ const elements = {
   inspectorOutboundCount: document.querySelector('#inspector-outbound-count'),
   inspectorPath: document.querySelector('#inspector-path'),
   inspectorTitle: document.querySelector('#inspector-title'),
-  inspectorSize: document.querySelector('#inspector-size'),
   inspectorWeightedInbound: document.querySelector('#inspector-weighted-inbound'),
   inspectorWeightedOutbound: document.querySelector('#inspector-weighted-outbound'),
   impactKey: document.querySelector('#impact-key'),
@@ -203,7 +201,6 @@ const elements = {
   impactKeyFocus: document.querySelector('#impact-key .impact-key-focus'),
   impactKeyOutbound: document.querySelector('#impact-key .is-outbound'),
   impactKeyScope: document.querySelector('#impact-key .impact-key-scope'),
-  territoryKey: document.querySelector('#territory-key'),
   layoutControl: document.querySelector('#layout-control'),
   layoutDescription: document.querySelector('#layout-description'),
   layoutLabel: document.querySelector('#layout-label'),
@@ -755,11 +752,6 @@ function renderInspector() {
   elements.inspectorExternal.hidden = !details.external;
   const selectedNode = state.presentedModel?.indexes?.nodesById.get(String(state.selectedId))
     || state.model?.indexes?.nodesById.get(String(state.selectedId));
-  const territoryEvidence = state.layout?.id === 'territory'
-    ? territorySizeEvidence(selectedNode)
-    : null;
-  elements.inspectorSize.hidden = !territoryEvidence;
-  elements.inspectorSize.textContent = territoryEvidence?.label ?? '';
   const fullSelectedNode = state.model?.indexes?.nodesById.get(String(state.selectedId));
   const selectedComponent = selectedNode?.cycleSummary
     ? state.model?.indexes?.componentsById.get(String(selectedNode.loadedComponentId))
@@ -1873,7 +1865,6 @@ function replaceSimulation(data, { preserve = false, fit = true, positions = nul
   } else {
     state.layout = createForceLayoutController(d3, layoutModel, state.settings, { cx: 0, cy: 0 });
   }
-  elements.territoryKey.hidden = state.layout.id !== 'territory' || !model.nodes.length;
   state.matrixEntityFocus = !state.matrixSelection && state.selectedId
     ? matrixFocusFor(state.selectedId, state.transform.k)?.position ?? null
     : null;

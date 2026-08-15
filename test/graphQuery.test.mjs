@@ -70,7 +70,7 @@ test('Structure tree requests recursive Architecture containment without leaking
   assert.deepEqual(buildGraphOptions({
     view: 'architecture',
     prefix: 'src/app',
-    layoutId: 'territory',
+    layoutId: 'nodes',
   }), {
     view: 'architecture',
     prefix: 'src/app',

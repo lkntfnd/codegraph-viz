@@ -60,17 +60,17 @@ test('position snapshots are finite, isolated, and defensively copied', () => {
   ];
   const architecture = { view: 'architecture', prefix: 'src' };
 
-  cache.savePositions(architecture, 'territory-map', source);
-  const snapshot = cache.getPositions(architecture, 'territory-map');
+  cache.savePositions(architecture, 'nodes', source);
+  const snapshot = cache.getPositions(architecture, 'nodes');
   assert.deepEqual([...snapshot], [
     ['a', { x: 10, y: 20, vx: 1, vy: -1 }],
     ['c', { x: 5, y: 6, vx: 0, vy: 0 }],
   ]);
 
   snapshot.get('a').x = 999;
-  assert.equal(cache.getPositions(architecture, 'territory-map').get('a').x, 10);
+  assert.equal(cache.getPositions(architecture, 'nodes').get('a').x, 10);
   assert.equal(cache.getPositions(architecture, 'structure-tree'), null);
-  assert.equal(cache.getPositions({ view: 'architecture', prefix: 'test' }, 'territory-map'), null);
+  assert.equal(cache.getPositions({ view: 'architecture', prefix: 'test' }, 'nodes'), null);
 });
 
 test('version changes invalidate graph data and positions exactly once', () => {
@@ -79,14 +79,14 @@ test('version changes invalidate graph data and positions exactly once', () => {
 
   assert.equal(cache.setVersion(10), false);
   cache.setData(options, { nodes: [], edges: [], mtime: 10 });
-  cache.savePositions(options, 'territory-map', [{ id: 'a', x: 1, y: 2 }]);
+  cache.savePositions(options, 'nodes', [{ id: 'a', x: 1, y: 2 }]);
   assert.equal(cache.setVersion(10), false);
   assert.ok(cache.getData(options));
-  assert.ok(cache.getPositions(options, 'territory-map'));
+  assert.ok(cache.getPositions(options, 'nodes'));
 
   assert.equal(cache.setVersion(11), true);
   assert.equal(cache.getData(options), null);
-  assert.equal(cache.getPositions(options, 'territory-map'), null);
+  assert.equal(cache.getPositions(options, 'nodes'), null);
   assert.equal(cache.setVersion(11), false);
   assert.equal(cache.setVersion(null), false);
 });

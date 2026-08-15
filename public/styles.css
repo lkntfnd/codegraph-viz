@@ -472,8 +472,7 @@ summary:focus-visible,
   color: var(--text);
 }
 
-.impact-key,
-.territory-key {
+.impact-key {
   position: absolute;
   z-index: 2;
   top: 13px;
@@ -495,23 +494,8 @@ summary:focus-visible,
   backdrop-filter: blur(8px);
 }
 
-.impact-key[hidden],
-.territory-key[hidden] {
+.impact-key[hidden] {
   display: none;
-}
-
-.territory-key {
-  gap: 8px;
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: var(--type-caption);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.territory-key strong {
-  color: var(--text);
-  font-weight: 650;
 }
 
 .impact-key .is-inbound {
@@ -2634,7 +2618,6 @@ summary:focus-visible,
   }
 
   .impact-key,
-  .territory-key,
   .filedeps-key {
     top: 45px;
   }

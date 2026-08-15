@@ -15,9 +15,6 @@ const IMPACT_BAND_MIN_COLUMN_GAP = 42;
 const IMPACT_BAND_MIN_ROW_GAP = 48;
 const RADIAL_RING_GAP = 180;
 const RADIAL_NODE_GAP = 18;
-const TERRITORY_WIDTH = 1200;
-const TERRITORY_HEIGHT = 800;
-const TERRITORY_GAP = 8;
 const HOTSPOT_COLUMN_GAP = 360;
 const HOTSPOT_ROW_GAP = 260;
 const HOTSPOT_CLUSTER_STRENGTH = 0.08;
@@ -263,13 +260,6 @@ function radialRadii(rings, maxDepth) {
   return radii;
 }
 
-function territoryWeight(node) {
-  const size = Number(node?.size);
-  if (Number.isFinite(size) && size > 0) return size;
-  const degree = Number(node?.degree);
-  return Number.isFinite(degree) && degree > 0 ? degree : 1;
-}
-
 function assignFolderAnchors(nodes) {
   const groups = [...new Set(nodes.map(fileGroupForNode))]
     .sort((left, right) => left.localeCompare(right));
@@ -433,46 +423,6 @@ export function createHotspotLayoutController(d3, model, settings, options = {})
       simulation.stop();
     },
   };
-}
-
-export function createTerritoryLayoutController(d3, model, options = {}) {
-  if (typeof d3?.hierarchy !== 'function' || typeof d3?.treemap !== 'function') {
-    throw new TypeError('Territory layout requires D3 hierarchy and treemap');
-  }
-  const width = Math.max(120, Number(options.width) || TERRITORY_WIDTH);
-  const height = Math.max(120, Number(options.height) || TERRITORY_HEIGHT);
-  const gap = Math.max(0, Number(options.gap) || TERRITORY_GAP);
-  const ordered = sortNodes([...model.nodes]);
-  const root = d3.hierarchy({ children: ordered })
-    .sum((node) => (Array.isArray(node.children) ? 0 : territoryWeight(node)))
-    .sort((left, right) => (
-      (right.value || 0) - (left.value || 0)
-      || String(left.data?.label ?? left.data?.id ?? '').localeCompare(
-        String(right.data?.label ?? right.data?.id ?? ''),
-      )
-    ));
-
-  d3.treemap()
-    .tile(d3.treemapBinary)
-    .size([width, height])
-    .paddingOuter(gap)
-    .paddingInner(gap)
-    .round(false)(root);
-
-  for (const leaf of root.leaves()) {
-    const node = leaf.data;
-    node.territory = {
-      x0: leaf.x0 - width / 2,
-      y0: leaf.y0 - height / 2,
-      x1: leaf.x1 - width / 2,
-      y1: leaf.y1 - height / 2,
-    };
-    node.x = (node.territory.x0 + node.territory.x1) / 2;
-    node.y = (node.territory.y0 + node.territory.y1) / 2;
-    resetNodeMotion(node);
-  }
-
-  return deterministicController('territory');
 }
 
 export function createDependencyMatrixLayoutController(model, options = {}) {

@@ -17,7 +17,7 @@ test('layout camera store isolates view, layout, and scope with defensive transf
   assert.deepEqual(store.restore('filedeps', 'hotspot-landscape', 'src'), { x: 12, y: -4, k: 1.8 });
   assert.deepEqual(store.restore('filedeps', 'dependency-matrix', 'src'), { x: -20, y: 8, k: 0.7 });
   assert.deepEqual(store.restore('filedeps', 'hotspot-landscape', 'test'), { x: 3, y: 5, k: 2 });
-  assert.equal(store.restore('architecture', 'territory', 'src'), null);
+  assert.equal(store.restore('architecture', 'nodes', 'src'), null);
 });
 
 test('layout camera scope tracks every graph-changing semantic identity', () => {

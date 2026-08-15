@@ -1,17 +1,19 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { fileDependencyFilterSummary, graphFilterSummary } from '../public/app/querySummary.js';
+import { graphFilterSummary } from '../public/app/querySummary.js';
 
 test('file dependency summary stays absent for the default coupling landscape', () => {
-  assert.equal(fileDependencyFilterSummary({}), null);
-  assert.equal(fileDependencyFilterSummary({
+  assert.equal(graphFilterSummary({ view: 'filedeps' }), null);
+  assert.equal(graphFilterSummary({
+    view: 'filedeps',
     fileEvidence: 'all', minRelationWeight: 1, minCouplingPercentile: 0,
   }), null);
 });
 
 test('file dependency summary names active semantic filters in stable order', () => {
-  assert.deepEqual(fileDependencyFilterSummary({
+  assert.deepEqual(graphFilterSummary({
+    view: 'filedeps',
     hiddenRelationKinds: ['references', ' Calls ', 'imports'],
     minRelationWeight: 4,
     fileEvidence: 'cycles',
@@ -23,10 +25,12 @@ test('file dependency summary names active semantic filters in stable order', ()
 });
 
 test('coupling and isolation evidence have explicit concise summaries', () => {
-  assert.equal(fileDependencyFilterSummary({
+  assert.equal(graphFilterSummary({
+    view: 'filedeps',
     fileEvidence: 'all', minCouplingPercentile: 90,
   }).short, 'P90+ coupling');
-  assert.equal(fileDependencyFilterSummary({
+  assert.equal(graphFilterSummary({
+    view: 'filedeps',
     fileEvidence: 'isolated', minCouplingPercentile: 90,
   }).short, 'Isolated files');
 });

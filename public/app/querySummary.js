@@ -58,14 +58,6 @@ function fileDependencyFilterParts(state = {}) {
   return { short, label };
 }
 
-export function fileDependencyFilterSummary(state = {}) {
-  const { short, label } = fileDependencyFilterParts(state);
-  return short.length ? {
-    short: short.join(' · '),
-    label: `Active filters: ${label.join('; ')}`,
-  } : null;
-}
-
 export function graphFilterSummary(state = {}) {
   const parts = state.view === 'filedeps'
     ? fileDependencyFilterParts(state)
