@@ -34,6 +34,7 @@
     "ls": "node bin/cli.mjs project ls",
     "dev:fixture": "node --no-warnings scripts/serve-fixture.mjs",
     "test": "node --test",
+    "test:browser": "node --test e2e/browser.mjs",
     "test:vendor": "node --test test/vendor.test.mjs",
     "check": "npm test && npm pack --dry-run"
   },
@@ -42,6 +43,7 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "d3": "7.9.0"
+    "d3": "7.9.0",
+    "playwright": "1.62.1"
   }
 }
