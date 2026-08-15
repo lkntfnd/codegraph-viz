@@ -76,3 +76,11 @@ test('apply writes matching CSS tokens without depending on document globals', (
 test('apply falls back to dark for an unknown theme', () => {
   assert.equal(apply('paper'), THEMES.dark);
 });
+
+test('every stylesheet custom property reference has a definition', () => {
+  const css = readFileSync(new URL('../public/styles.css', import.meta.url), 'utf8');
+  const definitions = new Set([...css.matchAll(/--([\w-]+)\s*:/g)].map((match) => match[1]));
+  const references = new Set([...css.matchAll(/var\(--([\w-]+)/g)].map((match) => match[1]));
+
+  assert.deepEqual([...references].filter((name) => !definitions.has(name)).sort(), []);
+});

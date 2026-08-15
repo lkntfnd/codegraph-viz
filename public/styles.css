@@ -4,7 +4,11 @@
   --bg: #0c0f13;
   --bg-panel: #12161c;
   --line: #1d242d;
+  --panel: var(--bg-panel);
+  --surface-2: color-mix(in srgb, var(--bg-panel) 92%, var(--text));
+  --border: var(--line);
   --text: #c8d0d8;
+  --text-soft: color-mix(in srgb, var(--text) 76%, var(--muted));
   --muted: #76828e;
   --link: rgba(138, 155, 176, 0.35);
   --link-hi: #38e1c6;
@@ -13,7 +17,10 @@
   --amber: #f5b14c;
   --purple: #c98cff;
   --blue: #6aa6ff;
+  --inbound: #73a9ff;
+  --outbound: #f0b55b;
   --danger: #ff8a65;
+  --range-fill: 0%;
   --type-control: 13px;
   --type-meta: 12px;
   --type-caption: 11px;
