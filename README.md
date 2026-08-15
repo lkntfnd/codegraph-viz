@@ -67,6 +67,8 @@ git clone https://github.com/fdslk/codegraph-viz.git
 cd codegraph-viz
 npm ci
 npm test
+npx playwright install chromium
+npm run test:browser
 ```
 
 To inspect the frontend without indexing this repository, launch the deterministic
@@ -78,6 +80,9 @@ npm run dev:fixture
 
 Run `npm run check` before opening a PR. It runs the test suite and inspects the
 npm package with `npm pack --dry-run`.
+
+The separate browser smoke test launches the disposable fixture in Chromium and
+checks all three views, layout switching, keyboard selection, and offline assets.
 
 D3 `7.9.0` is deliberately pinned as a **dev dependency** so tests can exercise
 the force model and verify the committed browser bundle byte-for-byte. Published
