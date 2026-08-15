@@ -1,4 +1,9 @@
+import { buildNodeSpatialIndex } from './spatialIndex.js';
+import { activationFor } from './nodeActivation.js';
+import { matrixPositionAt } from './dependencyMatrix.js';
+
 const MIN_SCALE = 0.12;
+const OVERVIEW_MIN_SCALE = 0.02;
 const MAX_SCALE = 6;
 const FIT_MAX_SCALE = 2.5;
 const CLICK_DISTANCE = 5;
@@ -12,6 +17,40 @@ const finite = (value, fallback) => {
 };
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
+export function boundedFitScale(value, minimum = MIN_SCALE) {
+  const floor = clamp(finite(minimum, MIN_SCALE), OVERVIEW_MIN_SCALE, MIN_SCALE);
+  return clamp(finite(value, floor), floor, FIT_MAX_SCALE);
+}
+
+export function zoomScaleExtent() {
+  return [OVERVIEW_MIN_SCALE, MAX_SCALE];
+}
+
+function normalizedPadding(value) {
+  if (value && typeof value === 'object') {
+    return {
+      top: Math.max(0, finite(value.top, DEFAULT_PADDING)),
+      right: Math.max(0, finite(value.right, DEFAULT_PADDING)),
+      bottom: Math.max(0, finite(value.bottom, DEFAULT_PADDING)),
+      left: Math.max(0, finite(value.left, DEFAULT_PADDING)),
+    };
+  }
+  const padding = Math.max(0, finite(value, DEFAULT_PADDING));
+  return { top: padding, right: padding, bottom: padding, left: padding };
+}
+
+export function paddedViewportCenter(width, height, padding = DEFAULT_PADDING) {
+  const viewportWidth = Math.max(0, finite(width, 0));
+  const viewportHeight = Math.max(0, finite(height, 0));
+  const inset = normalizedPadding(padding);
+  const availableWidth = Math.max(1, viewportWidth - inset.left - inset.right);
+  const availableHeight = Math.max(1, viewportHeight - inset.top - inset.bottom);
+  return {
+    x: inset.left + availableWidth / 2,
+    y: inset.top + availableHeight / 2,
+  };
+}
+
 /**
  * Attach zoom, pan, hover, click, and force-aware node dragging to a canvas.
  * D3 is injected because the browser loads the vendored UMD bundle globally.
@@ -22,15 +61,20 @@ export function createInteractions(options = {}) {
     canvas,
     getModel,
     getSimulation = () => null,
+    getMatrix = () => null,
     getNodeScale = () => 1,
     onTransform = noop,
     onHover = noop,
     onNodeClick = noop,
+    onNodeDoubleClick = noop,
+    onMatrixHover = noop,
+    onMatrixClick = noop,
     onBackgroundClick = noop,
     onSimulationChange = noop,
   } = options;
 
-  const missing = ['select', 'zoom', 'drag'].filter((name) => typeof d3?.[name] !== 'function');
+  const missing = ['select', 'zoom', 'drag', 'quadtree']
+    .filter((name) => typeof d3?.[name] !== 'function');
   if (!d3?.zoomIdentity) missing.push('zoomIdentity');
   if (missing.length) {
     throw new TypeError(`createInteractions requires d3 with: ${missing.join(', ')}`);
@@ -47,6 +91,7 @@ export function createInteractions(options = {}) {
     typeof d3.zoomTransform === 'function' ? d3.zoomTransform(canvas) : d3.zoomIdentity,
   );
   let hoveredNode = null;
+  let hoveredMatrixPosition = null;
   let lastPointer = null;
   let draggedNode = null;
   let dragSimulation = null;
@@ -59,13 +104,15 @@ export function createInteractions(options = {}) {
   let suppressClick = false;
   let suppressClickTimer = null;
   let destroyed = false;
+  let nodeIndex = buildNodeSpatialIndex(d3, [], () => 0);
+  let nodeIndexDirty = true;
 
   // d3-zoom stores its transform on the target element. Seed it explicitly so
   // hit-testing and programmatic transforms always share the same value.
   canvas.__zoom = transform;
 
   function normalizeTransform(value) {
-    const k = clamp(finite(value?.k, 1), MIN_SCALE, MAX_SCALE);
+    const k = clamp(finite(value?.k, 1), OVERVIEW_MIN_SCALE, MAX_SCALE);
     const x = finite(value?.x, 0);
     const y = finite(value?.y, 0);
     return d3.zoomIdentity.translate(x, y).scale(k);
@@ -138,30 +185,40 @@ export function createInteractions(options = {}) {
 
   function nodeAt(screenPoint) {
     if (!screenPoint) return null;
+    if (nodeIndexDirty) updateNodeIndex();
     const [x, y] = graphPoint(screenPoint);
-    const scale = nodeScale();
-    let nearest = null;
-    let nearestDistance = Infinity;
+    return nodeIndex.find(x, y);
+  }
 
-    for (const node of modelNodes()) {
-      if (!Number.isFinite(node?.x) || !Number.isFinite(node?.y)) continue;
-      const dx = x - node.x;
-      const dy = y - node.y;
-      const distance = dx * dx + dy * dy;
-      const radius = nodeRadius(node, scale);
-      if (distance <= radius * radius && distance < nearestDistance) {
-        nearest = node;
-        nearestDistance = distance;
-      }
-    }
-    return nearest;
+  function matrixAt(screenPoint) {
+    if (!screenPoint) return null;
+    const matrix = getMatrix();
+    if (!matrix) return null;
+    const [x, y] = graphPoint(screenPoint);
+    return matrixPositionAt(matrix, x, y);
+  }
+
+  function updateNodeIndex(nodes) {
+    const scale = nodeScale();
+    nodeIndex = buildNodeSpatialIndex(
+      d3,
+      modelNodes(nodes),
+      (node) => nodeRadius(node, scale),
+    );
+    nodeIndexDirty = false;
+    return nodeIndex.size;
+  }
+
+  function invalidateNodeIndex() {
+    nodeIndexDirty = true;
   }
 
   function updateCursorClasses() {
     const moving = Boolean(draggedNode || panning);
     canvas.classList.toggle('is-dragging', moving);
-    canvas.classList.toggle('is-pannable', !moving && !hoveredNode);
-    canvas.classList.toggle('is-node-hover', !moving && Boolean(hoveredNode));
+    const actionable = Boolean(hoveredNode || hoveredMatrixPosition?.cell);
+    canvas.classList.toggle('is-pannable', !moving && !actionable);
+    canvas.classList.toggle('is-node-hover', !moving && actionable);
   }
 
   function setHovered(node, event) {
@@ -171,9 +228,20 @@ export function createInteractions(options = {}) {
     onHover(node, event);
   }
 
+  function setHoveredMatrix(position, event) {
+    const same = position?.sourceIndex === hoveredMatrixPosition?.sourceIndex
+      && position?.targetIndex === hoveredMatrixPosition?.targetIndex;
+    if (same) return;
+    hoveredMatrixPosition = position;
+    updateCursorClasses();
+    onMatrixHover(position, event);
+  }
+
   function updateHover(screenPoint, event) {
     if (draggedNode || panning) return;
-    setHovered(nodeAt(screenPoint), event);
+    const matrixPosition = matrixAt(screenPoint);
+    setHovered(matrixPosition ? null : nodeAt(screenPoint), event);
+    setHoveredMatrix(matrixPosition, event);
   }
 
   function notifySimulation(simulation) {
@@ -201,11 +269,15 @@ export function createInteractions(options = {}) {
   function zoomFilter(event) {
     if (destroyed || !isPrimaryGesture(event)) return false;
     if (event.type === 'wheel') return true;
-    return !nodeAt(pointer(event));
+    const screenPoint = pointer(event);
+    return !nodeAt(screenPoint) && !matrixAt(screenPoint)?.cell;
   }
 
   function dragFilter(event) {
-    return !destroyed && isPrimaryGesture(event) && Boolean(nodeAt(pointer(event)));
+    return !destroyed
+      && isPrimaryGesture(event)
+      && Boolean(getSimulation())
+      && Boolean(nodeAt(pointer(event)));
   }
 
   function gentleWheelDelta(event) {
@@ -257,7 +329,7 @@ export function createInteractions(options = {}) {
   }
 
   const zoomBehavior = d3.zoom()
-    .scaleExtent([MIN_SCALE, MAX_SCALE])
+    .scaleExtent(zoomScaleExtent())
     .clickDistance(CLICK_DISTANCE)
     .wheelDelta(gentleWheelDelta)
     .filter(zoomFilter)
@@ -348,7 +420,10 @@ export function createInteractions(options = {}) {
 
   function handlePointerLeave(event) {
     lastPointer = null;
-    if (!draggedNode && !panning) setHovered(null, event);
+    if (!draggedNode && !panning) {
+      setHovered(null, event);
+      setHoveredMatrix(null, event);
+    }
   }
 
   function handleClick(event) {
@@ -360,17 +435,36 @@ export function createInteractions(options = {}) {
 
     const screenPoint = pointer(event);
     lastPointer = screenPoint;
+    const matrixPosition = matrixAt(screenPoint);
+    if (matrixPosition?.cell) {
+      onMatrixClick(matrixPosition, event);
+      return;
+    }
     const node = nodeAt(screenPoint);
-    if (node) onNodeClick(node, event);
-    else onBackgroundClick(event);
+    const activation = activationFor(event, Boolean(node));
+    if (activation === 'select') onNodeClick(node, event);
+    else if (activation === 'background') onBackgroundClick(event);
+  }
+
+  function handleDoubleClick(event) {
+    const screenPoint = pointer(event);
+    lastPointer = screenPoint;
+    if (matrixAt(screenPoint)) return;
+    const node = nodeAt(screenPoint);
+    if (activationFor(event, Boolean(node)) !== 'drill') return;
+    event.preventDefault();
+    event.stopPropagation();
+    onNodeDoubleClick(node, event);
   }
 
   selection
     .call(zoomBehavior)
+    .on('dblclick.zoom', null)
     .call(dragBehavior)
     .on('pointermove.interactions', handlePointerMove)
     .on('pointerleave.interactions', handlePointerLeave)
-    .on('click.interactions', handleClick);
+    .on('click.interactions', handleClick)
+    .on('dblclick.interactions', handleDoubleClick);
   updateCursorClasses();
 
   function getTransform() {
@@ -396,16 +490,7 @@ export function createInteractions(options = {}) {
   }
 
   function fitPadding(value) {
-    if (value && typeof value === 'object') {
-      return {
-        top: Math.max(0, finite(value.top, DEFAULT_PADDING)),
-        right: Math.max(0, finite(value.right, DEFAULT_PADDING)),
-        bottom: Math.max(0, finite(value.bottom, DEFAULT_PADDING)),
-        left: Math.max(0, finite(value.left, DEFAULT_PADDING)),
-      };
-    }
-    const padding = Math.max(0, finite(value, DEFAULT_PADDING));
-    return { top: padding, right: padding, bottom: padding, left: padding };
+    return normalizedPadding(value);
   }
 
   function fit(nodes, dimensions = {}) {
@@ -425,11 +510,20 @@ export function createInteractions(options = {}) {
     let maxX = -Infinity;
     let maxY = -Infinity;
     for (const node of positioned) {
-      const radius = nodeRadius(node, scale);
-      minX = Math.min(minX, node.x - radius);
-      maxX = Math.max(maxX, node.x + radius);
-      minY = Math.min(minY, node.y - radius);
-      maxY = Math.max(maxY, node.y + radius);
+      const box = node.territory;
+      const hasTerritory = box && [box.x0, box.y0, box.x1, box.y1].every(Number.isFinite);
+      if (hasTerritory) {
+        minX = Math.min(minX, box.x0);
+        maxX = Math.max(maxX, box.x1);
+        minY = Math.min(minY, box.y0);
+        maxY = Math.max(maxY, box.y1);
+      } else {
+        const radius = nodeRadius(node, scale);
+        minX = Math.min(minX, node.x - radius);
+        maxX = Math.max(maxX, node.x + radius);
+        minY = Math.min(minY, node.y - radius);
+        maxY = Math.max(maxY, node.y + radius);
+      }
     }
 
     const padding = fitPadding(dimensions.padding);
@@ -437,10 +531,9 @@ export function createInteractions(options = {}) {
     const availableHeight = Math.max(1, height - padding.top - padding.bottom);
     const graphWidth = Math.max(1, maxX - minX);
     const graphHeight = Math.max(1, maxY - minY);
-    const k = clamp(
+    const k = boundedFitScale(
       Math.min(availableWidth / graphWidth, availableHeight / graphHeight),
-      MIN_SCALE,
-      FIT_MAX_SCALE,
+      dimensions.minScale,
     );
     const graphCenterX = (minX + maxX) / 2;
     const graphCenterY = (minY + maxY) / 2;
@@ -458,8 +551,9 @@ export function createInteractions(options = {}) {
     if (!width || !height) return transform;
 
     const k = clamp(finite(dimensions.scale, transform.k), MIN_SCALE, MAX_SCALE);
+    const center = paddedViewportCenter(width, height, dimensions.padding);
     return setTransform(d3.zoomIdentity
-      .translate(width / 2 - node.x * k, height / 2 - node.y * k)
+      .translate(center.x - node.x * k, center.y - node.y * k)
       .scale(k));
   }
 
@@ -483,6 +577,7 @@ export function createInteractions(options = {}) {
     if (suppressClickTimer != null) globalThis.clearTimeout(suppressClickTimer);
 
     hoveredNode = null;
+    hoveredMatrixPosition = null;
     lastPointer = null;
     draggedNode = null;
     dragSimulation = null;
@@ -492,5 +587,13 @@ export function createInteractions(options = {}) {
     canvas.classList.remove('is-pannable', 'is-dragging', 'is-node-hover');
   }
 
-  return { getTransform, setTransform, fit, centerOn, destroy };
+  return {
+    getTransform,
+    setTransform,
+    fit,
+    centerOn,
+    updateNodeIndex,
+    invalidateNodeIndex,
+    destroy,
+  };
 }
