@@ -7,3 +7,4 @@
   `D3-LICENSE.txt`.
 
 The file is committed intentionally so the visualizer works fully offline.
+Refresh it after changing the pinned version with `npm run vendor:d3`.
