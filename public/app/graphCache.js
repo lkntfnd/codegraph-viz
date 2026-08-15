@@ -12,6 +12,25 @@ function clone(value) {
   return structuredClone(value);
 }
 
+function capacity(value, fallback) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? Math.max(1, Math.trunc(numeric)) : fallback;
+}
+
+function writeRecent(map, key, value, limit) {
+  map.delete(key);
+  map.set(key, value);
+  while (map.size > limit) map.delete(map.keys().next().value);
+}
+
+function readRecent(map, key) {
+  const value = map.get(key);
+  if (value === undefined) return null;
+  map.delete(key);
+  map.set(key, value);
+  return value;
+}
+
 function positionKey(options, layoutId) {
   return JSON.stringify([graphCacheKey(options), String(layoutId || '')]);
 }
@@ -35,9 +54,11 @@ export function applyCachedPositions(nodes = [], snapshot = null) {
   return restored;
 }
 
-export function createGraphCache() {
+export function createGraphCache(options = {}) {
   const graphs = new Map();
   const positions = new Map();
+  const graphLimit = capacity(options.maxGraphs, 24);
+  const positionLimit = capacity(options.maxPositions, 48);
   let version;
 
   function clear() {
@@ -59,11 +80,11 @@ export function createGraphCache() {
       return true;
     },
     setData(options, data) {
-      graphs.set(graphCacheKey(options), clone(data));
+      writeRecent(graphs, graphCacheKey(options), clone(data), graphLimit);
     },
     getData(options) {
-      const data = graphs.get(graphCacheKey(options));
-      return data === undefined ? null : clone(data);
+      const data = readRecent(graphs, graphCacheKey(options));
+      return data === null ? null : clone(data);
     },
     savePositions(options, layoutId, nodes = []) {
       const snapshot = new Map();
@@ -80,10 +101,10 @@ export function createGraphCache() {
           vy: Number.isFinite(vy) ? vy : 0,
         });
       }
-      positions.set(positionKey(options, layoutId), snapshot);
+      writeRecent(positions, positionKey(options, layoutId), snapshot, positionLimit);
     },
     getPositions(options, layoutId) {
-      const snapshot = positions.get(positionKey(options, layoutId));
+      const snapshot = readRecent(positions, positionKey(options, layoutId));
       if (!snapshot) return null;
       return new Map([...snapshot].map(([id, point]) => [id, { ...point }]));
     },

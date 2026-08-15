@@ -106,3 +106,26 @@ test('cached positions restore matching model nodes and report reuse', () => {
   assert.deepEqual(nodes[1], { id: 'b', x: 3, y: 4 });
   assert.equal(applyCachedPositions(nodes, null), 0);
 });
+
+test('graph and position caches evict least-recently-used scopes', () => {
+  const cache = createGraphCache({ maxGraphs: 2, maxPositions: 2 });
+  const first = { view: 'architecture', prefix: 'first' };
+  const second = { view: 'architecture', prefix: 'second' };
+  const third = { view: 'architecture', prefix: 'third' };
+
+  cache.setData(first, { id: 'first' });
+  cache.setData(second, { id: 'second' });
+  assert.deepEqual(cache.getData(first), { id: 'first' });
+  cache.setData(third, { id: 'third' });
+  assert.equal(cache.getData(second), null);
+  assert.deepEqual(cache.getData(first), { id: 'first' });
+  assert.deepEqual(cache.getData(third), { id: 'third' });
+
+  cache.savePositions(first, 'nodes', [{ id: 'a', x: 1, y: 1 }]);
+  cache.savePositions(second, 'nodes', [{ id: 'b', x: 2, y: 2 }]);
+  assert.ok(cache.getPositions(first, 'nodes'));
+  cache.savePositions(third, 'nodes', [{ id: 'c', x: 3, y: 3 }]);
+  assert.equal(cache.getPositions(second, 'nodes'), null);
+  assert.ok(cache.getPositions(first, 'nodes'));
+  assert.ok(cache.getPositions(third, 'nodes'));
+});
