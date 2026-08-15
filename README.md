@@ -10,6 +10,12 @@ simulation, zoom/pan, drag-reactive nodes, neighborhood highlighting, an
 Obsidian-style settings panel, and persistent dark/black themes. It has no CDN
 requests and no installed runtime dependencies.
 
+Each view has two purpose-built layouts:
+
+- **Architecture:** interactive force-directed Nodes or a deterministic Structure tree.
+- **File dependencies:** coupling Hotspots or a directed Dependency matrix.
+- **Call graph:** caller/callee Impact flow or hop-based Radial reach.
+
 ## Requirements
 
 - **Node 22.13 or newer**. Node 24 is recommended.
@@ -57,7 +63,7 @@ opener is unavailable, the server continues running and prints its local URL.
 ## Contributing
 
 ```bash
-git clone https://github.com/lkntfnd/codegraph-viz.git
+git clone https://github.com/fdslk/codegraph-viz.git
 cd codegraph-viz
 npm ci
 npm test

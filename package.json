@@ -9,16 +9,17 @@
   "files": [
     "bin/",
     "public/",
-    "src/"
+    "src/",
+    "scripts/serve-fixture.mjs"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lkntfnd/codegraph-viz.git"
+    "url": "git+https://github.com/fdslk/codegraph-viz.git"
   },
   "bugs": {
-    "url": "https://github.com/lkntfnd/codegraph-viz/issues"
+    "url": "https://github.com/fdslk/codegraph-viz/issues"
   },
-  "homepage": "https://github.com/lkntfnd/codegraph-viz#readme",
+  "homepage": "https://github.com/fdslk/codegraph-viz#readme",
   "keywords": [
     "codegraph",
     "dependency-graph",
