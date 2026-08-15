@@ -8,6 +8,21 @@ import { openDb, detectSchema } from './db.mjs';
 import { dbMtime } from './util.mjs';
 import { loadGraph, viewArchitecture, viewFileDeps, viewCallGraph, searchNodes } from './views.mjs';
 
+const DEFAULT_CALL_DEPTH = 2;
+const MIN_CALL_DEPTH = 1;
+const MAX_CALL_DEPTH = 5;
+
+function callDepth(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return DEFAULT_CALL_DEPTH;
+  return Math.min(MAX_CALL_DEPTH, Math.max(MIN_CALL_DEPTH, Math.trunc(numeric)));
+}
+
+function callDirection(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return ['callers', 'both', 'callees'].includes(normalized) ? normalized : 'both';
+}
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC = join(__dirname, '..', 'public');
 const PUBLIC_ROOT = resolve(PUBLIC);
@@ -102,10 +117,12 @@ export async function createServer(dbPath) {
         const view = url.searchParams.get('view') || 'architecture';
         const opt = {
           limit: Number(url.searchParams.get('limit')) || undefined,
-          depth: Number(url.searchParams.get('depth')) || 2,
+          depth: callDepth(url.searchParams.get('depth')),
+          direction: callDirection(url.searchParams.get('direction')),
           focus: url.searchParams.get('focus') || null,
           kind: url.searchParams.get('kind') || null,
           prefix: url.searchParams.get('prefix') || '',
+          recursive: ['1', 'true'].includes(url.searchParams.get('recursive')),
           file: url.searchParams.get('file') || null,
         };
         const data = view === 'callgraph' ? viewCallGraph(g, opt)

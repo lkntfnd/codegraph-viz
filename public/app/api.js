@@ -1,4 +1,4 @@
-const GRAPH_OPTION_KEYS = ['prefix', 'file', 'focus', 'depth', 'kind', 'limit'];
+const GRAPH_OPTION_KEYS = ['prefix', 'file', 'focus', 'depth', 'direction', 'kind', 'limit', 'recursive'];
 
 function describeError(error) {
   return error instanceof Error ? error.message : String(error);

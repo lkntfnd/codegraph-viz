@@ -62,15 +62,26 @@ export function loadGraph(db, S) {
 const fileOfId = (g, id) => g.fileOf.get(id) || (g.nodes.get(id) && g.nodes.get(id).file) || null;
 
 function fileDepEdges(g) {
-  const w = new Map();
+  const dependencies = new Map();
   for (const e of g.edges) {
     if (!DEP_RE.test(e.k)) continue;
     const a = fileOfId(g, e.s), b = fileOfId(g, e.t);
     if (!a || !b || a === b) continue;
     const key = a + SEP + b;
-    w.set(key, (w.get(key) || 0) + 1);
+    let dependency = dependencies.get(key);
+    if (!dependency) {
+      dependency = { weight: 0, relations: new Map() };
+      dependencies.set(key, dependency);
+    }
+    dependency.weight += 1;
+    dependency.relations.set(e.k, (dependency.relations.get(e.k) || 0) + 1);
   }
-  return w;
+  return new Map([...dependencies].map(([key, dependency]) => [key, {
+    weight: dependency.weight,
+    relations: [...dependency.relations]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([kind, weight]) => ({ kind, weight })),
+  }]));
 }
 function symbolsPerFile(g) {
   const c = new Map();
@@ -87,7 +98,14 @@ function underPrefix(prefix) {
   return (p) => { const parts = String(p).split('/').filter(Boolean); return base.every((b, i) => parts[i] === b); };
 }
 
-export function viewCallGraph(g, { file = null, limit = 400, focus = null, depth = 2, kind = null } = {}) {
+export function viewCallGraph(g, {
+  file = null,
+  limit = 400,
+  focus = null,
+  depth = 2,
+  direction = 'both',
+  kind = null,
+} = {}) {
   const callEdges = g.edges.filter((e) => CALL_RE.test(e.k));
 
   // scoped to one file: its functions + their direct callers/callees (external dimmed)
@@ -108,28 +126,48 @@ export function viewCallGraph(g, { file = null, limit = 400, focus = null, depth
   }
 
   let keep;
+  let scope = null;
   if (focus && g.nodes.has(focus)) {
-    const adj = new Map();
-    const link = (a, b) => { (adj.get(a) || adj.set(a, []).get(a)).push(b); };
-    for (const e of callEdges) { link(e.s, e.t); link(e.t, e.s); }
-    keep = new Set([focus]); let frontier = [focus];
-    for (let d = 0; d < depth; d++) {
-      const next = [];
-      for (const id of frontier) for (const nb of adj.get(id) || []) if (!keep.has(nb)) { keep.add(nb); next.push(nb); }
-      frontier = next;
+    const incoming = new Map();
+    const outgoing = new Map();
+    const link = (map, a, b) => { (map.get(a) || map.set(a, []).get(a)).push(b); };
+    for (const e of callEdges) {
+      link(outgoing, e.s, e.t);
+      link(incoming, e.t, e.s);
     }
+    const traverse = (adjacency) => {
+      const reached = new Set([focus]);
+      let frontier = [focus];
+      for (let d = 0; d < depth; d++) {
+        const next = [];
+        for (const id of frontier) {
+          for (const neighbor of adjacency.get(id) || []) {
+            if (reached.has(neighbor)) continue;
+            reached.add(neighbor);
+            next.push(neighbor);
+          }
+        }
+        frontier = next;
+      }
+      return reached;
+    };
+    if (direction === 'callers') keep = traverse(incoming);
+    else if (direction === 'callees') keep = traverse(outgoing);
+    else keep = new Set([...traverse(incoming), ...traverse(outgoing)]);
   } else {
     const deg = new Map();
     for (const e of callEdges) { deg.set(e.s, (deg.get(e.s) || 0) + 1); deg.set(e.t, (deg.get(e.t) || 0) + 1); }
     let ids = [...deg.entries()];
     if (kind) ids = ids.filter(([id]) => g.nodes.get(id)?.kind === kind);
     ids.sort((a, b) => b[1] - a[1]);
+    const total = ids.length;
     keep = new Set(ids.slice(0, limit).map(([id]) => id));
+    if (total > keep.size) scope = { loaded: keep.size, total, limit };
   }
   const nodes = [];
   for (const id of keep) { const n = g.nodes.get(id); if (n) nodes.push({ id, label: n.label, kind: n.kind, file: n.file, focus: id === focus }); }
   const edges = callEdges.filter((e) => keep.has(e.s) && keep.has(e.t)).map((e) => ({ source: e.s, target: e.t, kind: e.k }));
-  return { view: 'callgraph', nodes, edges, truncated: !focus && keep.size >= limit };
+  return { view: 'callgraph', nodes, edges, truncated: scope != null, ...(scope ? { scope } : {}) };
 }
 
 export function viewFileDeps(g, { prefix = '', limit = 600 } = {}) {
@@ -138,29 +176,100 @@ export function viewFileDeps(g, { prefix = '', limit = 600 } = {}) {
   const inFolder = new Set([...cnt.keys()].filter(under));   // every file in the folder, even if isolated
   const ext = new Set();                                     // outside files the folder depends on / is used by
   const edges = [];
-  for (const [key, weight] of w) {
+  for (const [key, dependency] of w) {
     const [a, b] = key.split(SEP);
     if (!under(a) && !under(b)) continue;                    // edge must touch the folder
     if (!under(a)) ext.add(a);
     if (!under(b)) ext.add(b);
-    edges.push({ source: a, target: b, weight });
+    edges.push({ source: a, target: b, ...dependency });
   }
   const mk = (f, external) => ({ id: f, label: f.split('/').pop(), path: f, size: cnt.get(f) || 1, kind: 'file', external });
   let nodes = [...[...inFolder].map((f) => mk(f, false)), ...[...ext].map((f) => mk(f, true))];
-  if (nodes.length > limit) {
+  if (inFolder.size > limit) {
     const folderNodes = nodes.filter((n) => !n.external).sort((a, b) => b.size - a.size).slice(0, limit);
     const keep = new Set(folderNodes.map((n) => n.id));
     const keptEdges = edges.filter((e) => keep.has(e.source) || keep.has(e.target));
     for (const e of keptEdges) { keep.add(e.source); keep.add(e.target); }
     nodes = nodes.filter((n) => keep.has(n.id));
-    return { view: 'filedeps', nodes, edges: keptEdges.filter((e) => keep.has(e.source) && keep.has(e.target)), truncated: true, prefix };
+    return {
+      view: 'filedeps',
+      nodes,
+      edges: keptEdges.filter((e) => keep.has(e.source) && keep.has(e.target)),
+      truncated: true,
+      scope: { loaded: folderNodes.length, total: inFolder.size, limit },
+      prefix,
+    };
   }
   return { view: 'filedeps', nodes, edges, truncated: false, prefix };
 }
 
+function viewArchitectureTree(g, prefix) {
+  const under = underPrefix(prefix);
+  const base = prefix.split('/').filter(Boolean);
+  const rootId = prefix || '.';
+  const cnt = symbolsPerFile(g);
+  const records = new Map([[rootId, {
+    id: rootId,
+    label: base.at(-1) || 'root',
+    path: prefix,
+    parent: null,
+    size: 0,
+    kind: 'folder',
+    expandable: true,
+  }]]);
+
+  for (const [file, symbolCount] of cnt) {
+    if (!under(file)) continue;
+    const parts = file.split('/').filter(Boolean);
+    records.get(rootId).size += symbolCount;
+    for (let depth = base.length + 1; depth <= parts.length; depth += 1) {
+      const id = parts.slice(0, depth).join('/');
+      const parent = depth === base.length + 1
+        ? rootId
+        : parts.slice(0, depth - 1).join('/');
+      const fileNode = depth === parts.length;
+      let record = records.get(id);
+      if (!record) {
+        record = {
+          id,
+          label: parts[depth - 1],
+          path: id,
+          parent,
+          size: 0,
+          kind: fileNode ? 'file' : 'folder',
+          expandable: !fileNode,
+        };
+        records.set(id, record);
+      }
+      record.size += symbolCount;
+    }
+  }
+
+  const descendants = [...records.values()]
+    .filter((node) => node.id !== rootId)
+    .sort((left, right) => left.id.localeCompare(right.id));
+  const nodes = [records.get(rootId), ...descendants];
+  const edges = descendants.map((node) => ({
+    source: node.parent,
+    target: node.id,
+    kind: 'contains',
+    weight: 1,
+  }));
+  return {
+    view: 'architecture',
+    nodes,
+    edges,
+    truncated: false,
+    prefix,
+    recursive: true,
+    relation: 'containment',
+  };
+}
+
 // One level of folders/files directly under `prefix` (''=repo root). Single-child
 // folder chains are collapsed into one hop (java/com/xm), like an IDE tree.
-export function viewArchitecture(g, { prefix = '' } = {}) {
+export function viewArchitecture(g, { prefix = '', recursive = false } = {}) {
+  if (recursive) return viewArchitectureTree(g, prefix);
   const under = underPrefix(prefix);
   const base = prefix.split('/').filter(Boolean);
   const cnt = symbolsPerFile(g), w = fileDepEdges(g);
@@ -196,19 +305,40 @@ export function viewArchitecture(g, { prefix = '' } = {}) {
     expandable.set(grp.name, (expandable.get(grp.name) || false) || grp.deeper);
   }
   const fe = new Map();
-  for (const [key, weight] of w) {
+  for (const [key, dependency] of w) {
     const [a, b] = key.split(SEP);
     const ga = groupOf(a), gb = groupOf(b);
     if (!ga || !gb || ga.name === gb.name) continue;
     const k = ga.name + SEP + gb.name;
-    fe.set(k, (fe.get(k) || 0) + weight);
+    let grouped = fe.get(k);
+    if (!grouped) {
+      grouped = { weight: 0, relations: new Map() };
+      fe.set(k, grouped);
+    }
+    grouped.weight += dependency.weight;
+    for (const relation of dependency.relations) {
+      grouped.relations.set(
+        relation.kind,
+        (grouped.relations.get(relation.kind) || 0) + relation.weight,
+      );
+    }
   }
   const strip = (id) => (prefix ? id.slice(prefix.length + 1) : id);
   const nodes = [...size.entries()].map(([id, s]) => ({
     id, label: strip(id), path: id, size: s,
     kind: expandable.get(id) ? 'folder' : 'file', expandable: !!expandable.get(id),
   }));
-  const edges = [...fe.entries()].map(([k, weight]) => { const [source, target] = k.split(SEP); return { source, target, weight }; });
+  const edges = [...fe.entries()].map(([k, dependency]) => {
+    const [source, target] = k.split(SEP);
+    return {
+      source,
+      target,
+      weight: dependency.weight,
+      relations: [...dependency.relations]
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([kind, weight]) => ({ kind, weight })),
+    };
+  });
   return { view: 'architecture', nodes, edges, truncated: false, prefix };
 }
 
