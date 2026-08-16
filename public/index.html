@@ -1,217 +1,264 @@
 <!doctype html>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>codegraph-viz</title>
-<script src="https://unpkg.com/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
-<style>
-  :root {
-    --ink:#0c0f13; --panel:#12161c; --line:#1d242d;
-    --text:#c8d0d8; --muted:#6b7682; --phosphor:#38e1c6; --amber:#f5b14c;
-    --mono: ui-monospace, "SF Mono", Menlo, monospace;
-    --sans: ui-sans-serif, system-ui, -apple-system, sans-serif;
-  }
-  * { box-sizing:border-box; }
-  html,body { margin:0; height:100%; background:var(--ink); color:var(--text); font-family:var(--sans); }
-  body { display:flex; flex-direction:column; }
-  header {
-    border-bottom:1px solid var(--line); padding:10px 16px;
-    display:flex; align-items:center; gap:18px; position:relative;
-  }
-  header::before { content:""; position:absolute; left:0; right:0; top:0; height:2px; background:linear-gradient(90deg, transparent, var(--phosphor), transparent); opacity:.6; }
-  .brand { font-family:var(--mono); font-weight:600; letter-spacing:.5px; }
-  .brand b { color:var(--phosphor); }
-  nav { display:flex; gap:4px; }
-  .tab { font-family:var(--mono); font-size:13px; color:var(--muted); background:none; border:1px solid transparent; padding:5px 12px; border-radius:6px; cursor:pointer; }
-  .tab[aria-selected="true"] { color:var(--ink); background:var(--phosphor); }
-  .tab:hover:not([aria-selected="true"]) { color:var(--text); border-color:var(--line); }
-  .spacer { flex:1; }
-  .meta { font-family:var(--mono); font-size:12px; color:var(--muted); }
-  .meta b { color:var(--text); font-weight:600; }
-  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--muted); margin-right:6px; vertical-align:middle; }
-  .dot.live { background:var(--phosphor); box-shadow:0 0 8px var(--phosphor); }
-  main { flex:1; position:relative; overflow:hidden; }
-  /* ── RENDER HOOK: Cytoscape mounts into #graph ────────────────── */
-  #graph { position:absolute; inset:0; }
-  .placeholder { position:absolute; inset:0; display:grid; place-items:center; text-align:center; }
-  .placeholder .box { max-width:520px; padding:28px; }
-  .placeholder h2 { font-family:var(--mono); color:var(--phosphor); font-weight:600; margin:0 0 10px; }
-  .placeholder p { color:var(--muted); line-height:1.6; margin:6px 0; font-size:14px; }
-  .placeholder code { font-family:var(--mono); color:var(--amber); }
-  .err { color:var(--amber); }
-  #crumbs { border-bottom:1px solid var(--line); padding:7px 16px; font-family:var(--mono); font-size:12px; color:var(--muted); display:flex; gap:6px; align-items:center; min-height:32px; }
-  #crumbs .crumb { color:var(--phosphor); cursor:pointer; }
-  #crumbs .crumb:hover { text-decoration:underline; }
-  #crumbs .cur { color:var(--text); }
-  #crumbs .sep { color:var(--line); }
-  #crumbs .hint { color:var(--muted); opacity:.7; }
-</style>
-
-<header>
-  <span class="brand">code<b>graph</b>-viz</span>
-  <nav id="tabs">
-    <button class="tab" data-view="architecture" aria-selected="true">architecture</button>
-    <button class="tab" data-view="filedeps">file deps</button>
-    <button class="tab" data-view="callgraph">call graph</button>
-  </nav>
-  <span class="spacer"></span>
-  <span class="meta" id="meta"><span class="dot" id="livedot"></span>connecting…</span>
-</header>
-<div id="crumbs"></div>
-
-<main>
-  <div id="graph"></div>
-  <div class="placeholder" id="placeholder">
-    <div class="box">
-      <h2 id="ph-title">frontend shell</h2>
-      <p id="ph-body">Backend is wired up. This is where the graph will render.</p>
-      <p>Render hook: mount Cytoscape into <code>#graph</code> inside <code>render(view, data)</code> below.</p>
+<!-- public/index.html — accessible shell for the local graph visualizer. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>codegraph-viz</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand" aria-label="codegraph-viz">
+      <span class="brand-mark" aria-hidden="true">⌁</span>
+      <span>code<span class="brand-accent">graph</span></span>
+      <span class="brand-suffix">/viz</span>
     </div>
+
+    <nav class="view-tabs" id="tabs" role="tablist" aria-label="Graph view">
+      <button class="tab" id="tab-architecture" type="button" role="tab" aria-controls="workspace" data-view="architecture" aria-selected="true">Architecture</button>
+      <button class="tab" id="tab-filedeps" type="button" role="tab" aria-controls="workspace" data-view="filedeps" aria-selected="false">File deps</button>
+      <button class="tab" id="tab-callgraph" type="button" role="tab" aria-controls="workspace" data-view="callgraph" aria-selected="false">Call graph</button>
+    </nav>
+
+    <label class="layout-control" id="layout-control" hidden>
+      <span id="layout-label">Layout</span>
+      <select id="layout-select" aria-label="Graph layout"></select>
+    </label>
+
+    <div class="connection-meta" id="meta" role="status" aria-live="polite">
+      <span class="live-dot is-loading" id="live-dot" aria-hidden="true"></span>
+      <span id="meta-copy">Connecting to index…</span>
+    </div>
+  </header>
+
+  <div class="scope-rail">
+    <nav class="scope-path" id="crumbs" aria-label="Current graph scope"></nav>
+    <p class="layout-description" id="layout-description" aria-live="polite"></p>
   </div>
-</main>
 
-<script>
-// ── tiny client for the skeleton ──────────────────────────────────
-const state = { view: 'architecture', mtime: null, meta: null, prefix: '', file: null };
-const $ = (s) => document.querySelector(s);
-const api = (p) => fetch(p).then((r) => r.json());
+  <main class="workspace" id="workspace">
+    <canvas id="graph" role="application" aria-roledescription="interactive code graph" tabindex="0" aria-label="Interactive code relationship graph" aria-describedby="graph-keyboard-help graph-status">
+      Your browser needs Canvas support to display the code graph.
+    </canvas>
+    <p class="sr-only" id="graph-keyboard-help">Use arrow keys to move between graph nodes. Press Enter to drill into the selected node. Press F to fit and Escape to clear selection.</p>
+    <div class="sr-only" id="graph-status" role="status" aria-live="polite" aria-atomic="true"></div>
+    <canvas class="graph-transition" id="graph-transition" aria-hidden="true" hidden></canvas>
 
-async function loadMeta() {
-  try {
-    const m = await api('/api/meta');
-    state.meta = m;
-    if (m.error) {
-      $('#meta').innerHTML = '<span class="dot"></span><span class="err">schema not detected — see /api/schema</span>';
-      return;
-    }
-    $('#livedot').classList.add('live');
-    $('#meta').innerHTML =
-      `<span class="dot live"></span><b>${m.nodeCount.toLocaleString()}</b> symbols · ` +
-      `<b>${m.edgeCount.toLocaleString()}</b> edges`;
-  } catch {
-    $('#meta').innerHTML = '<span class="dot"></span><span class="err">backend offline</span>';
-  }
-}
+    <div class="field-readout" aria-live="polite">
+      <span class="field-view" id="field-view">Architecture</span>
+      <span class="field-count" id="field-count">Loading graph…</span>
+      <span class="field-warning" id="field-warning" hidden>View truncated</span>
+      <span class="filter-readout" id="filter-readout" hidden>
+        <span id="filter-readout-copy"></span>
+        <button id="clear-filters" type="button" aria-label="Clear active graph filters">Clear</button>
+      </span>
+    </div>
 
-async function load(view) {
-  state.view = view;
-  for (const t of document.querySelectorAll('.tab'))
-    t.setAttribute('aria-selected', String(t.dataset.view === view));
-  const params = new URLSearchParams({ view });
-  if (view === 'architecture' || view === 'filedeps') { if (state.prefix) params.set('prefix', state.prefix); }
-  if (view === 'callgraph' && state.file) params.set('file', state.file);
-  const data = await api('/api/graph?' + params);
-  state.mtime = data.mtime;
-  renderCrumbs(view);
-  render(view, data);
-}
+    <div class="impact-key" id="impact-key" aria-label="Impact flow direction" hidden>
+      <span class="is-inbound">Callers</span>
+      <span class="impact-key-focus">← selected →</span>
+      <span class="is-outbound">Callees</span>
+      <span class="impact-key-scope" hidden>links sampled at fit</span>
+    </div>
 
-// ── breadcrumb: shows scope, click a segment to jump there ────────
-function renderCrumbs(view) {
-  const bc = $('#crumbs');
-  if (view === 'callgraph') {
-    if (!state.file) { bc.innerHTML = '<span class="hint">top functions by call degree — open a file from “file deps” to scope this</span>'; return; }
-    bc.innerHTML =
-      '<span class="crumb" data-act="filedeps">‹ file deps</span> <span class="sep">/</span> ' +
-      `<span class="cur">${state.file}</span> <span class="hint">— calls &amp; callers in this file</span>`;
-    return;
-  }
-  const parts = state.prefix ? state.prefix.split('/').filter(Boolean) : [];
-  const segs = ['<span class="crumb" data-prefix="">root</span>'];
-  let acc = '';
-  for (const p of parts) { acc = acc ? acc + '/' + p : p; segs.push(`<span class="crumb" data-prefix="${acc}">${p}</span>`); }
-  const hint = view === 'filedeps' ? ' <span class="hint">— files in this folder &amp; their deps (click a file → call graph)</span>'
-    : (parts.length ? '' : ' <span class="hint">— click a folder to drill in</span>');
-  bc.innerHTML = segs.join(' <span class="sep">/</span> ') + hint;
-}
+    <div class="filedeps-key" id="filedeps-key" aria-label="Node size represents weighted coupling" hidden>
+      <div class="filedeps-key-summary">
+        <span class="cycle-key-symbol" aria-hidden="true"></span>
+        <span id="filedeps-key-label">Size: weighted coupling · Hull: folder</span>
+      </div>
+      <div class="coupling-scale" id="coupling-scale" aria-label="Loaded-scope coupling percentiles">
+        <span data-coupling-percentile="25"><i aria-hidden="true"></i><span><b>P25</b> <strong>0</strong></span></span>
+        <span data-coupling-percentile="50"><i aria-hidden="true"></i><span><b>P50</b> <strong>0</strong></span></span>
+        <span data-coupling-percentile="90"><i aria-hidden="true"></i><span><b>P90</b> <strong>0</strong></span></span>
+      </div>
+    </div>
 
-$('#crumbs').addEventListener('click', (e) => {
-  const seg = e.target.closest('[data-prefix]');
-  if (seg) { state.prefix = seg.dataset.prefix; state.file = null; load(state.view === 'callgraph' ? 'filedeps' : state.view); return; }
-  if (e.target.closest('[data-act="filedeps"]')) { state.file = null; load('filedeps'); }
-});
+    <div class="placeholder" id="placeholder" role="status">
+      <div class="placeholder-glyph" aria-hidden="true"><span></span><span></span><span></span></div>
+      <h1 id="placeholder-title">Mapping project</h1>
+      <p id="placeholder-body">Reading the local code index and preparing the field.</p>
+      <button class="placeholder-action" id="placeholder-action" type="button" hidden>Find a symbol</button>
+    </div>
 
-// ── RENDER HOOK ───────────────────────────────────────────────────
-// `data` = { view, nodes:[{id,label,kind,size?,focus?}], edges:[{source,target,...}], truncated }
-const KIND_COLOR = { folder:'#c98cff', file:'#f5b14c', function:'#38e1c6', method:'#38e1c6', class:'#6aa6ff', module:'#c98cff', interface:'#6aa6ff' };
-const colorFor = (n) => n.external ? '#4a5560' : (KIND_COLOR[n.kind] || '#6b7682');
+    <div class="loading-veil" id="loading-veil" role="status" aria-live="polite" hidden>
+      <div class="loading-card">
+        <span class="loading-spinner" aria-hidden="true"></span>
+        <span>
+          <strong id="loading-title">Updating graph</strong>
+          <small id="loading-body">Preparing the next view.</small>
+        </span>
+      </div>
+    </div>
 
-let cy = null;
-function render(view, data) {
-  const ph = $('#placeholder');
-  if (data.error) {
-    ph.style.display = 'grid';
-    $('#ph-title').textContent = 'schema not detected';
-    $('#ph-body').innerHTML = 'Open <code>/api/schema</code> and set table/column names in <code>src/db.mjs</code> CONFIG.';
-    return;
-  }
-  ph.style.display = 'none';
+    <aside class="selection-inspector" id="selection-inspector" aria-labelledby="inspector-title" hidden>
+      <header class="inspector-header">
+        <div>
+          <p class="inspector-eyebrow">Selected node</p>
+          <h2 id="inspector-title"></h2>
+        </div>
+        <button class="inspector-close" id="inspector-close" type="button" aria-label="Close inspector">×</button>
+      </header>
+      <p class="inspector-path" id="inspector-path"></p>
+      <div class="inspector-meta">
+        <span id="inspector-kind"></span>
+        <span id="inspector-external" hidden>External</span>
+      </div>
+      <div class="inspector-directions" aria-label="Direct relationship counts">
+        <div><strong id="inspector-inbound-count">0</strong><span>Inbound</span></div>
+        <div><strong id="inspector-outbound-count">0</strong><span>Outbound</span></div>
+      </div>
+      <section class="inspector-hierarchy" id="inspector-hierarchy" aria-label="Structure hierarchy evidence" hidden>
+        <h3>Structure</h3>
+        <div>
+          <span><strong id="inspector-hierarchy-depth">0</strong>Loaded depth</span>
+          <span><strong id="inspector-hierarchy-children">0</strong>Direct children</span>
+          <span><strong id="inspector-hierarchy-symbols">0</strong>Indexed symbols</span>
+        </div>
+        <p id="inspector-hierarchy-mix"></p>
+        <p class="inspector-hierarchy-parent">
+          <span>Parent</span>
+          <button id="inspector-hierarchy-parent" type="button"></button>
+          <em id="inspector-hierarchy-root">Loaded scope root</em>
+        </p>
+      </section>
+      <section class="inspector-coupling" id="inspector-coupling" aria-label="File coupling evidence" hidden>
+        <h3>Weighted coupling</h3>
+        <div>
+          <span><strong id="inspector-weighted-inbound">0</strong>Inbound</span>
+          <span><strong id="inspector-weighted-outbound">0</strong>Outbound</span>
+          <span><strong id="inspector-coupling-total">0</strong>Total</span>
+        </div>
+        <p><strong id="inspector-coupling-percentile">0</strong> scope percentile</p>
+      </section>
+      <section class="inspector-cycle" id="inspector-cycle" aria-label="Dependency cycle evidence" hidden>
+        <h3 id="inspector-cycle-title">Dependency cycle</h3>
+        <p><strong id="inspector-cycle-size">0</strong> <span id="inspector-cycle-description">files in one strongly connected group</span></p>
+        <ul id="inspector-cycle-members" aria-label="Cycle members"></ul>
+        <button class="inspector-cycle-toggle" id="inspector-cycle-toggle" type="button" hidden></button>
+        <footer id="inspector-cycle-note">Loaded scope only. Membership indicates mutual reachability.</footer>
+      </section>
+      <section class="inspector-matrix" id="inspector-matrix" aria-label="Selected dependency matrix cell" hidden>
+        <h3>Directed dependency</h3>
+        <div class="inspector-matrix-route">
+          <button id="inspector-matrix-source" type="button"></button>
+          <span aria-hidden="true">→</span>
+          <button id="inspector-matrix-target" type="button"></button>
+        </div>
+        <p><strong id="inspector-matrix-weight">0</strong> weight · <span id="inspector-matrix-kinds"></span></p>
+      </section>
+      <section class="inspector-impact" id="inspector-impact" aria-label="Loaded call impact evidence" hidden>
+        <h3>Loaded reach</h3>
+        <div>
+          <article>
+            <strong id="inspector-caller-total">0</strong>
+            <span>caller symbols</span>
+            <small><b id="inspector-caller-direct">0</b> direct · <b id="inspector-caller-transitive">0</b> transitive</small>
+            <p><b id="inspector-caller-files">0</b> potentially affected files</p>
+          </article>
+          <article>
+            <strong id="inspector-callee-total">0</strong>
+            <span>callee symbols</span>
+            <small><b id="inspector-callee-direct">0</b> direct · <b id="inspector-callee-transitive">0</b> transitive</small>
+            <p><b id="inspector-callee-files">0</b> dependency files</p>
+          </article>
+        </div>
+        <footer>Loaded trace only. Reach does not prove runtime impact.</footer>
+      </section>
+      <div class="inspector-actions" aria-label="Selection actions">
+        <button id="inspector-copy-name" type="button">Copy name</button>
+        <button id="inspector-copy-path" type="button">Copy path</button>
+        <span id="inspector-action-status" role="status" aria-live="polite"></span>
+      </div>
+      <button class="inspector-center" id="inspector-center" type="button">Center in graph</button>
+      <button class="inspector-disclosure" id="inspector-disclosure" type="button" hidden></button>
+      <section class="inspector-relations" aria-labelledby="inspector-inbound-title">
+        <h3 id="inspector-inbound-title">Direct inbound</h3>
+        <ul id="inspector-inbound"></ul>
+      </section>
+      <section class="inspector-relations" aria-labelledby="inspector-outbound-title">
+        <h3 id="inspector-outbound-title">Direct outbound</h3>
+        <ul id="inspector-outbound"></ul>
+      </section>
+    </aside>
 
-  const ids = new Set(data.nodes.map((n) => n.id));
-  const elements = [
-    ...data.nodes.map((n) => ({ data: {
-      id: n.id, label: n.label || n.id, color: colorFor(n),
-      size: 14 + Math.min(36, (n.size || 0)),
-      focus: n.focus ? 1 : 0, expandable: n.expandable ? 1 : 0,
-      path: n.path || n.id, kind: n.kind,
-    } })),
-    // ponytail: drop edges to nodes the view truncated away, else cytoscape throws
-    ...data.edges.filter((e) => ids.has(e.source) && ids.has(e.target))
-      .map((e) => ({ data: { source: e.source, target: e.target } })),
-  ];
+    <div class="graph-toolbar" aria-label="Graph actions">
+      <span class="toolbar-status" id="toolbar-status" role="status" aria-live="polite" hidden></span>
+      <button class="tool-button" id="copy-investigation" type="button" title="Copy investigation link" aria-label="Copy investigation link">
+        <svg viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M7.5 12.5 12.5 7.5M6 14H4.5a3 3 0 0 1 0-6H7M14 6h1.5a3 3 0 0 1 0 6H13" />
+        </svg>
+      </button>
+      <button class="tool-button" id="open-perspectives" type="button" title="Local perspectives" aria-label="Open local perspectives">
+        <svg viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M5 3.5h10v13l-5-3-5 3z" />
+        </svg>
+      </button>
+      <button class="tool-button" id="open-entities" type="button" title="Browse graph entities" aria-label="Browse graph entities">
+        <svg viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M5 5h10M5 10h10M5 15h10M2.5 5h.1M2.5 10h.1M2.5 15h.1" />
+        </svg>
+      </button>
+      <button class="tool-button" id="fit-graph" type="button" title="Fit graph to view" aria-label="Fit graph to view">
+        <svg viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M7 3H3v4M13 3h4v4M17 13v4h-4M7 17H3v-4" />
+        </svg>
+      </button>
+    </div>
 
-  if (cy) cy.destroy();
-  cy = cytoscape({
-    container: document.getElementById('graph'),
-    elements,
-    style: [
-      { selector: 'node', style: {
-        'background-color': 'data(color)', 'width': 'data(size)', 'height': 'data(size)',
-        'label': 'data(label)', 'color': '#c8d0d8', 'font-family': 'ui-monospace, Menlo, monospace',
-        'font-size': 9, 'min-zoomed-font-size': 7, 'text-valign': 'bottom', 'text-margin-y': 3,
-        'border-width': 'data(focus)', 'border-color': '#fff' } },
-      { selector: 'edge', style: {
-        'width': 2, 'line-color': '#8a9bb0', 'target-arrow-color': '#8a9bb0',
-        'target-arrow-shape': 'triangle', 'arrow-scale': .9, 'curve-style': 'haystack', 'opacity': .9 } },
-      { selector: 'node[expandable = 1]', style: { 'border-width': 2, 'border-color': '#c98cff', 'border-style': 'dashed' } },
-      { selector: 'node:selected', style: { 'border-width': 3, 'border-color': '#38e1c6' } },
-      { selector: '.highlight', style: { 'opacity': 1 } },
-      { selector: 'edge.highlight', style: { 'line-color': '#38e1c6', 'target-arrow-color': '#38e1c6', 'width': 3 } },
-      { selector: 'node.highlight', style: { 'border-width': 3, 'border-color': '#38e1c6' } },
-      { selector: '.faded', style: { 'opacity': .1 } },
-    ],
-    layout: { name: 'cose', animate: false, nodeRepulsion: 8000, idealEdgeLength: 60, fit: true, padding: 30 },
-    wheelSensitivity: .2,
-  });
+    <dialog class="perspectives-dialog" id="perspectives-dialog" aria-labelledby="perspectives-title">
+      <header>
+        <div>
+          <p>Local workspace</p>
+          <h2 id="perspectives-title">Perspectives</h2>
+        </div>
+        <button id="close-perspectives" type="button" aria-label="Close perspectives">×</button>
+      </header>
+      <p class="perspectives-intro">Save the current investigation in this browser. Source code and the index remain unchanged.</p>
+      <form class="perspective-save" id="perspective-save-form">
+        <label for="perspective-name">Perspective name</label>
+        <span>
+          <input id="perspective-name" name="name" maxlength="80" autocomplete="off" required placeholder="Example: auth impact review">
+          <button type="submit">Save current</button>
+        </span>
+      </form>
+      <p class="perspective-status" id="perspective-status" role="status" aria-live="polite"></p>
+      <details class="perspective-import" id="perspective-import">
+        <summary>Import JSON</summary>
+        <label class="sr-only" for="perspective-import-json">Perspective JSON</label>
+        <textarea id="perspective-import-json" rows="5" spellcheck="false" placeholder="Paste a codegraph-viz-perspective payload"></textarea>
+        <button id="import-perspective" type="button">Import perspective</button>
+      </details>
+      <div class="perspective-list-header">
+        <h3>Saved perspectives</h3>
+        <small>Stored locally · newest first</small>
+      </div>
+      <p class="perspective-empty" id="perspective-empty">No saved perspectives yet.</p>
+      <ul class="perspective-list" id="perspective-list"></ul>
+    </dialog>
 
-  cy.on('tap', 'node', (e) => {
-    const d = e.target.data();
-    if (view === 'architecture') {
-      // drill into a folder; a leaf (no subfolders) jumps to its file deps
-      state.prefix = d.path;
-      load(d.expandable ? 'architecture' : 'filedeps');
-    } else if (view === 'filedeps') {
-      state.file = d.path; load('callgraph');   // open this file's call graph
-    } else {
-      const hood = e.target.closedNeighborhood();
-      cy.elements().addClass('faded').removeClass('highlight');
-      hood.removeClass('faded').addClass('highlight');
-    }
-  });
-  cy.on('tap', (e) => { if (e.target === cy) cy.elements().removeClass('faded').removeClass('highlight'); });
-}
+    <dialog class="entities-dialog" id="entities-dialog" aria-labelledby="entities-title">
+      <header>
+        <div>
+          <p>Current loaded graph</p>
+          <h2 id="entities-title">Browse entities</h2>
+        </div>
+        <button id="close-entities" type="button" aria-label="Close entity browser">×</button>
+      </header>
+      <p class="entities-intro">Search the visible model by name, path, ID, or kind. Opening an entity selects and centers it in the graph.</p>
+      <label class="entities-search" for="entity-query">
+        <span>Find an entity</span>
+        <input id="entity-query" role="combobox" aria-controls="entities-list" aria-autocomplete="list" aria-expanded="false" type="search" autocomplete="off" placeholder="Type a file, folder, or symbol">
+      </label>
+      <p class="entities-status" id="entities-status" role="status" aria-live="polite"></p>
+      <ul class="entities-list" id="entities-list" role="listbox" aria-label="Graph entities"></ul>
+    </dialog>
 
-// ── live refresh: poll mtime, reload current view on change ───────
-async function poll() {
-  try {
-    const { mtime } = await api('/api/version');
-    if (state.mtime != null && mtime !== state.mtime) { await loadMeta(); await load(state.view); }
-  } catch {}
-}
-setInterval(poll, 3000);
+    <div id="settings-root"></div>
+  </main>
 
-document.getElementById('tabs').addEventListener('click', (e) => {
-  const v = e.target?.dataset?.view; if (v) load(v);
-});
-
-loadMeta().then(() => load(state.view));
-</script>
+  <script src="/vendor/d3.v7.min.js"></script>
+  <script type="module" src="/app/main.js"></script>
+</body>
+</html>

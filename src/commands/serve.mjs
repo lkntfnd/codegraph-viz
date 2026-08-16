@@ -1,11 +1,13 @@
 // src/commands/serve.mjs — default command: open one project in the browser.
 
-import { exec } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { createServer } from '../server.mjs';
 import { findDbUpward } from '../locate.mjs';
+import { openBrowser } from '../open-browser.mjs';
 import { findFreePort } from '../util.mjs';
+
+export const LOOPBACK_HOST = '127.0.0.1';
 
 function resolveDbPath(args) {
   if (args.db) return resolve(args.db);
@@ -37,9 +39,9 @@ async function run(args) {
   }
   const { server, schema, driver } = started;
   const port = await findFreePort(Number(args.port) || 7700);
-  const url = `http://localhost:${port}`;
+  const url = `http://${LOOPBACK_HOST}:${port}`;
 
-  server.listen(port, () => {
+  server.listen(port, LOOPBACK_HOST, () => {
     console.log(`\n  codegraph-viz  ▸  running`);
     console.log(`  db      : ${dbPath}`);
     console.log(`  driver  : ${driver}`);
@@ -48,7 +50,7 @@ async function run(args) {
       console.log(`  ⚠ schema not fully detected — open ${url}/api/schema and set names in src/db.mjs CONFIG.`);
     }
     console.log(`\n  →  ${url}    (Ctrl+C to stop)\n`);
-    if (!args.open && args['no-open'] !== true && args.open !== false) exec(`open ${url}`);
+    if (!args.open && args['no-open'] !== true && args.open !== false) openBrowser(url);
   });
 
   const shutdown = () => { server.close(() => process.exit(0)); setTimeout(() => process.exit(0), 500); };

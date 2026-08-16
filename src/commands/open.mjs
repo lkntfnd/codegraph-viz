@@ -1,7 +1,7 @@
 // src/commands/open.mjs — `codegraph-viz open <#|path>`
 
 import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { basename, resolve } from 'node:path';
 import { scanProjects, defaultRoots } from '../locate.mjs';
 import { dbMtime } from '../util.mjs';
 import serve from './serve.mjs';
@@ -35,7 +35,7 @@ async function run(args) {
   // otherwise match by project name against the scan list
   const roots = args.scan ? [resolve(args.scan)] : defaultRoots();
   const projects = await scanProjects(roots, Number(args.depth) || 4);
-  const hits = projects.filter((p) => p.project.split('/').pop() === String(target));
+  const hits = projects.filter((p) => basename(p.project) === String(target));
   if (hits.length === 1) return serve.run({ ...args, project: hits[0].project, _: [] });
   if (hits.length > 1) {
     console.error(`  Multiple projects named "${target}". Use the # from: codegraph-viz project ls`);
